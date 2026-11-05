@@ -109,8 +109,12 @@ with sync_playwright() as p:
     if mode=='site':
         pg.evaluate('closeBook()'); pg.evaluate("location.hash='mapa'"); pg.wait_for_timeout(300)
         pg.wait_for_timeout(300)
-        for tab in ['mapa','viagens','fotos']:
-            pg.click('#tab-'+tab); pg.wait_for_timeout(300); pg.screenshot(path=S+f'bk/s-{tab}.png')
+        for tab in ['mapa','viagens','fotos','ano']:
+            pg.click('#tab-'+tab); pg.wait_for_timeout(900); pg.screenshot(path=S+f'bk/s-{tab}.png')
+        pg.set_viewport_size({'width':390,'height':844}); pg.click('#tab-mapa'); pg.wait_for_timeout(900); pg.screenshot(path=S+'bk/s-home-m.png', full_page=True)
+        pg.click('#tab-viagens'); pg.wait_for_timeout(600); pg.screenshot(path=S+'bk/s-home-m2.png')
+        pg.set_viewport_size({'width':1440,'height':900}); pg.click('#tab-mapa'); pg.wait_for_timeout(300)
+        pg.click('.st-main'); pg.wait_for_timeout(1500); pg.screenshot(path=S+'bk/s-home-sel.png'); pg.click('#tab-viagens'); pg.wait_for_timeout(300)
         pg.click('#tab-viagens'); pg.click('.card >> nth=0'); pg.wait_for_timeout(400); pg.screenshot(path=S+'bk/s-trip.png',full_page=True)
         pg.wait_for_timeout(2200); pg.evaluate('window.scrollTo(0,420)'); pg.wait_for_timeout(1500); pg.screenshot(path=S+'bk/s-trip-vp.png')
         pg.evaluate('window.scrollTo(0,1500)'); pg.wait_for_timeout(1600); pg.screenshot(path=S+'bk/s-trip-cards.png')

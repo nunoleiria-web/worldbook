@@ -315,7 +315,7 @@ function createGeoMap(o) {
     dpr = Math.min(2.5, window.devicePixelRatio || 1);
     if (w === W && h === H) return;
     const first = !W; W = w; H = h; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (first && pendingFit) { v = gmFit(pendingFit.pts, W, H, pendingFit.pad, pendingFit.maxZ); pendingFit = null; if (o.animate) runProgress(); }
+    if (first && pendingFit) { v = fitIn(pendingFit.pts, pendingFit.pad, pendingFit.maxZ); pendingFit = null; if (o.animate) runProgress(); }
     redraw();
   };
   function runProgress() { const t0 = performance.now(); const step = t => { const k = Math.min(1, (t - t0) / 1500); state.progress = 1 - Math.pow(1 - k, 3); redraw(); if (k < 1) requestAnimationFrame(step); }; state.progress = 0; requestAnimationFrame(step); }
@@ -330,7 +330,8 @@ function createGeoMap(o) {
   }
   const wpAt = z => 256 * Math.pow(2, z);
   const setView = (nv, animate) => { if (animate) fly(nv); else { v = nv; redraw(); } };
-  const fit = (pts, pad, maxZ, animate) => { if (!W) { pendingFit = { pts, pad, maxZ }; return; } setView(gmFit(pts, W, H, pad, maxZ), animate); };
+  function fitIn(pts, pad, maxZ) { const ins = (o.inset && o.inset(W, H)) || [0, 0]; const vv = gmFit(pts, Math.max(120, W - ins[0]), Math.max(120, H - ins[1]), pad, maxZ); const s2 = 256 * Math.pow(2, vv.z); vv.cx -= ins[0] / 2 / s2; vv.cy += ins[1] / 2 / s2; return vv; }
+  const fit = (pts, pad, maxZ, animate) => { if (!W) { pendingFit = { pts, pad, maxZ }; return; } setView(fitIn(pts, pad, maxZ), animate); };
   function zoomAt(f, px, py) { const x = v.cx + (px - W / 2) / wp(), y = v.cy + (py - H / 2) / wp(); v.z = Math.max(minZ(), Math.min(17, v.z + Math.log2(f))); v.cx = x - (px - W / 2) / wp(); v.cy = y - (py - H / 2) / wp(); redraw(); }
   /* interação */
   const ptrs = new Map(); let pinch = null, vel = { x: 0, y: 0 }, lastMove = 0, down = null;

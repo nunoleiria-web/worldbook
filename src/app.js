@@ -151,24 +151,51 @@ if (restoreInput) restoreInput.addEventListener('change', async () => {
 
 /* ---------- início ---------- */
 const TABS = [['mapa', 'Mapa'], ['viagens', 'Viagens'], ['ano', 'Ano'], ['fotos', 'Fotos']];
+const BRAND_SVG = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="16" cy="16" r="13"/><path d="M3 16h26M16 3c-4.2 4-6 8.3-6 13s1.8 9 6 13M16 3c4.2 4 6 8.3 6 13s-1.8 9-6 13" opacity=".55"/><path d="M8.5 21.5c3-2.6 5.6-3.4 8-2.6 2.4.8 4.4.3 7-2.4" stroke-dasharray="1.6 2.2" stroke-linecap="round"/><circle cx="23.5" cy="16.5" r="2" fill="currentColor" stroke="none"/></svg>';
+function worldStats() {
+  const codes = new Set(), conts = new Set(); let km = 0, photos = 0, days = 0;
+  for (const t of trips) {
+    const c = findCountry(t.country); if (c) codes.add(c.code);
+    const inf = tripPoint(t) ? tripStops(t) : null;
+    if (inf) { km += inf.km; for (const x of inf.countries) codes.add(x); }
+    photos += (t.photos || []).length; days += tripDayCount(t);
+  }
+  for (const c of codes) if (COUNTRY_BY_CODE[c]) conts.add(COUNTRY_BY_CODE[c].cont);
+  return { codes: [...codes], conts: conts.size, km, photos, days };
+}
 function renderHome() {
-  const root = h('div');
-  root.append(h('header', { class: 'top' },
-    h('div', {}, h('h1', {}, 'Álbum de viagens'),
-      (loaded && trips.length) ? h('p', { class: 'mono', style: 'margin:0' }, statsLine()) : null),
-    h('div', { class: 'row' }, importBtn(), newTripBtn(), backupBtns(),
-      h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': ui.discreet ? 'true' : 'false', title: 'Desfoca fotos e textos para mostrares o ecrã a outras pessoas', onclick: toggleDiscreet }, 'Modo discreto'))));
-  root.append(h('div', { class: 'tabs', role: 'tablist' }, TABS.map(([k, label]) =>
-    h('button', { class: 'tab', type: 'button', role: 'tab', id: 'tab-' + k, 'aria-selected': ui.tab === k ? 'true' : 'false', onclick: () => setTab(k) }, label))));
+  const root = h('div', { class: 'hm' });
+  const more = h('details', { class: 'hm-more' },
+    h('summary', { 'aria-label': 'Mais opções', title: 'Mais opções' }, h('span', { 'aria-hidden': 'true' }, '•••')),
+    h('div', { class: 'hm-menu' },
+      (() => { const b = importBtn(); if (b) b.classList.add('only-m'); return b; })(),
+      backupBtns(),
+      h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': ui.discreet ? 'true' : 'false', title: 'Desfoca fotos e textos para mostrares o ecrã a outras pessoas', onclick: toggleDiscreet }, ui.discreet ? 'Desligar modo discreto' : 'Modo discreto')));
+  const brand = h('button', { class: 'hm-brand', type: 'button', onclick: () => setTab('mapa') }, h('span', { class: 'mk', 'aria-hidden': 'true' }), h('span', {}, 'Álbum de viagens'));
+  brand.querySelector('.mk').innerHTML = BRAND_SVG;
+  root.append(h('header', { class: 'hm-nav' }, h('div', { class: 'hm-in' },
+    brand,
+    h('nav', { class: 'hm-tabs', role: 'tablist', 'aria-label': 'Secções' }, TABS.map(([k, label]) =>
+      h('button', { class: 'tab', type: 'button', role: 'tab', id: 'tab-' + k, 'aria-selected': ui.tab === k ? 'true' : 'false', onclick: () => setTab(k) }, label))),
+    h('div', { class: 'hm-acts' }, importBtn(), newTripBtn(), more))));
 
-  if (noDb) root.append(h('div', { class: 'empty' }, h('h2', {}, 'Não foi possível abrir o álbum.'), h('p', {}, 'Para ver e guardar viagens, abre esta página com a tua conta Claude.')));
-  else if (loadError) root.append(h('div', { class: 'empty' }, h('h2', {}, 'Não foi possível carregar as viagens.'), h('p', {}, 'Recarrega a página para tentar de novo.')));
-  else if (!loaded) root.append(h('p', { class: 'mono' }, slow ? 'Sem resposta ainda. Vou continuar a tentar em segundo plano.' : 'A carregar viagens…'));
-  else if (!trips.length) root.append(h('div', { class: 'empty' },
-    h('h2', {}, 'O álbum ainda está vazio.'),
+  const body = h('div', { class: 'hm-body' });
+  if (noDb) body.append(h('div', { class: 'empty' }, h('h2', {}, 'Não foi possível abrir o álbum.'), h('p', {}, 'Para ver e guardar viagens, abre esta página com a tua conta Claude.')));
+  else if (loadError) body.append(h('div', { class: 'empty' }, h('h2', {}, 'Não foi possível carregar as viagens.'), h('p', {}, 'Recarrega a página para tentar de novo.')));
+  else if (!loaded) body.append(h('p', { class: 'mono' }, slow ? 'Sem resposta ainda. Vou continuar a tentar em segundo plano.' : 'A carregar viagens…'));
+  else if (!trips.length) body.append(h('div', { class: 'empty hm-empty' },
+    h('p', { class: 'kick' }, 'Bem-vindo'),
+    h('h2', {}, 'O mundo à espera das tuas viagens.'),
     h('p', {}, canWrite ? 'Cria a primeira viagem, ou usa "Importar fotos": agrupo as fotos por datas, leio a localização guardada nelas e proponho as viagens.' : 'Ainda não há viagens neste álbum.'),
     h('div', { class: 'row' }, newTripBtn(), importBtn())));
-  else root.append(ui.tab === 'mapa' ? renderMapTab() : ui.tab === 'viagens' ? renderTripsTab() : ui.tab === 'ano' ? renderYearTab() : renderPhotosTab());
+  else if (ui.tab === 'mapa') { root.append(renderMapTab()); return root; }
+  else {
+    const titles = { viagens: ['As viagens', statsLine()], ano: ['O ano em viagem', 'Cada dia fora de casa, mês a mês.'], fotos: ['Fotografias', pl(trips.reduce((n, t) => n + (t.photos || []).length, 0), 'foto', 'fotos') + ' de todas as viagens'] };
+    const [tt, sub] = titles[ui.tab] || ['', ''];
+    body.append(h('div', { class: 'hm-title' }, h('h1', {}, tt), sub ? h('p', {}, sub) : null));
+    body.append(ui.tab === 'viagens' ? renderTripsTab() : ui.tab === 'ano' ? renderYearTab() : renderPhotosTab());
+  }
+  root.append(body);
   return root;
 }
 function setTab(k) { if (location.hash === '#' + k) { ui.tab = k; render(); } else location.hash = k; }
@@ -179,46 +206,51 @@ function toggleDiscreet() {
   render();
 }
 
-/* separador Mapa */
+/* separador Mapa: mapa a toda a largura com passaporte e faixa de viagens */
 function renderMapTab() {
-  const root = h('div');
+  const root = h('div', { class: 'hm-mapwrap' });
   const located = trips.map(t => ({ t, pt: tripPoint(t) })).filter(x => x.pt).sort((a, b) => (a.t.start || a.t.createdAt || '').localeCompare(b.t.start || b.t.createdAt || ''));
   const without = trips.filter(t => !tripPoint(t));
   if (ui.sel && !tripById(ui.sel)) ui.sel = null;
-  root.append(h('div', { class: 'bar' },
-    h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.route ? 'true' : 'false', onclick: () => { ui.route = !ui.route; render(); } }, 'Percurso entre viagens'),
-    h('span', { class: 'mono' }, located.length ? pl(located.length, 'viagem no mapa', 'viagens no mapa') + '. Usa + e − para aproximar.' : 'Ainda nenhuma viagem tem localização.')));
-  const visitedCodes = new Set(trips.map(t => (findCountry(t.country) || {}).code).filter(Boolean));
-  for (const x of located) for (const s of tripStops(x.t).stops) if (s.code) visitedCodes.add(s.code);
-  const marks = located.map(x => { const c = (x.t.photos || []).find(p => p.id === coverId(x.t)); return { id: x.t.id, lat: x.pt.lat, lng: x.pt.lng, label: x.t.title, r: 18, sel: ui.sel === x.t.id, photo: c && !ui.discreet ? blobUrl(c.th || c.id) : null }; });
-  const m = createGeoMap({ marks, routePoints: ui.route ? located.map(x => ({ lat: x.pt.lat, lng: x.pt.lng })) : null, visited: visitedCodes, fitPoints: marks, label: 'Mapa das viagens', wheel: 'ctrl', pad: 90, maxZ: 6,
-    view: mapState.v || null, onView: v => { mapState.v = { cx: v.cx, cy: v.cy, z: v.z }; }, onPin: id => { ui.sel = id; render(); } });
-  m.el.classList.add('big');
-  root.append(m.el);
-  const note = h('div', { class: 'mapnote' });
-  const sel = ui.sel && tripById(ui.sel);
-  if (sel) note.append(h('div', { class: 'sel' }, coverEl(sel),
-    h('div', {}, h('h3', {}, sel.title),
-      h('p', { class: 'mono' }, [placeText(sel), dateText(sel)].filter(Boolean).join('  ·  ')),
-      h('button', { class: 'btn sm', type: 'button', onclick: () => go(sel.id) }, 'Abrir viagem'))));
-  const countries = new Map();
-  for (const t of trips) { const c = findCountry(t.country); if (c) countries.set(c.code, (countries.get(c.code) || 0) + 1); }
-  if (countries.size) {
-    const byCont = {};
-    for (const code of countries.keys()) { const c = COUNTRY_BY_CODE[code]; (byCont[c.cont] = byCont[c.cont] || []).push(c); }
-    note.append(h('div', {}, h('h2', { class: 'sec' }, 'Países visitados'),
-      h('div', { class: 'chips' }, Object.keys(byCont).flatMap(k => byCont[k].sort((a, b) => a.name.localeCompare(b.name, 'pt')).map(c =>
-        h('span', { class: 'chip static', title: CONTINENTS[k] }, c.name + (countries.get(c.code) > 1 ? ' ×' + countries.get(c.code) : '')))))));
-  }
-  if (without.length) note.append(h('p', { class: 'nolocs' }, pl(without.length, 'viagem sem localização', 'viagens sem localização') + ': ',
+  const W = worldStats();
+  const marks = located.map(x => { const c = (x.t.photos || []).find(p => p.id === coverId(x.t)); return { id: x.t.id, lat: x.pt.lat, lng: x.pt.lng, label: x.t.title, r: 20, sel: ui.sel === x.t.id, photo: c && !ui.discreet ? blobUrl(c.th || c.id) : null }; });
+  const routePts = [];
+  if (ui.route) for (const x of located) { const inf = tripStops(x.t); if (inf.routePts.length > 1) routePts.push(...inf.routePts); else routePts.push({ lat: x.pt.lat, lng: x.pt.lng }); }
+  const m = createGeoMap({ marks, routePoints: ui.route && routePts.length > 1 ? routePts : null, visited: new Set(W.codes), fitPoints: marks.length ? marks.concat(routePts) : [], label: 'Mapa das viagens', wheel: 'ctrl', pad: 120, maxZ: 6, inset: (w, hh) => w >= 900 ? [420, 150] : [0, 0],
+    view: mapState.v || null, onView: v => { mapState.v = { cx: v.cx, cy: v.cy, z: v.z }; }, onPin: id => { ui.sel = ui.sel === id ? null : id; render(); } });
+  m.el.classList.add('hero-map');
+  const pct = (W.codes.length / 195 * 100);
+  const passport = h('section', { class: 'passport', 'aria-label': 'Resumo' },
+    h('p', { class: 'kick' }, 'O meu mundo'),
+    h('div', { class: 'pp-big' }, h('b', {}, String(W.codes.length)), h('span', {}, W.codes.length === 1 ? 'país' : 'países', h('small', {}, (pct < 1 ? pct.toFixed(1) : Math.round(pct)).toString().replace('.', ',') + ' % do mundo'))),
+    h('div', { class: 'pp-bar', role: 'img', 'aria-label': 'Percentagem do mundo visitada' }, h('i', { style: `width:${Math.max(1.5, Math.min(100, pct))}%` })),
+    h('dl', { class: 'pp-grid' },
+      [[trips.length, trips.length === 1 ? 'viagem' : 'viagens'], [W.days, 'dias fora'], [bkNum(W.km), 'km'], [W.photos, 'fotos'], [W.conts, W.conts === 1 ? 'continente' : 'continentes']]
+        .map(([v, l]) => h('div', {}, h('dt', {}, l), h('dd', {}, String(v))))),
+    W.codes.length ? h('ul', { class: 'pp-flags' }, W.codes.sort((a, b) => countryNameOf(a).localeCompare(countryNameOf(b), 'pt')).map(c => h('li', { title: countryNameOf(c) }, h('span', { class: 'fl', 'aria-hidden': 'true' }, flagOf(c)), countryNameOf(c)))) : null,
+    h('label', { class: 'pp-toggle' }, h('input', { type: 'checkbox', checked: ui.route, onchange: e => { ui.route = e.target.checked; render(); } }), 'Mostrar percursos'));
+  const recent = trips.slice().sort((a, b) => (b.start || b.createdAt || '').localeCompare(a.start || a.createdAt || ''));
+  const strip = h('div', { class: 'hm-strip', role: 'list', 'aria-label': 'Viagens' }, recent.map(t => {
+    const cid = coverId(t), sel = ui.sel === t.id, inf = tripPoint(t) ? tripStops(t) : null;
+    return h('div', { class: 'st-card' + (sel ? ' on' : ''), role: 'listitem' },
+      h('button', { class: 'st-main', type: 'button', onclick: () => { if (sel) go(t.id); else { ui.sel = t.id; render(); } } },
+        cid && !ui.discreet ? h('img', { src: thumbOf(t, cid), alt: '', loading: 'lazy' }) : h('span', { class: 'ph', style: `background:hsl(${hueOf(t.title)} 40% 42%)` }),
+        h('span', { class: 'st-tx' }, h('b', {}, t.title), h('small', {}, [dateText(t), inf && inf.countries.length ? inf.countries.map(flagOf).join(' ') : ''].filter(Boolean).join('  ')))),
+      sel ? h('button', { class: 'st-open', type: 'button', onclick: () => go(t.id) }, 'Abrir viagem →') : null);
+  }));
+  root.append(h('section', { class: 'hm-hero' }, m.el, passport, h('div', { class: 'hm-stripwrap' }, strip)));
+  if (without.length) root.append(h('div', { class: 'hm-body' }, h('p', { class: 'nolocs' }, pl(without.length, 'viagem sem localização', 'viagens sem localização') + ': ',
     without.map((t, i) => [i ? ', ' : '', h('button', { type: 'button', onclick: () => go(t.id) }, t.title)]),
-    canWrite ? '. Edita a viagem e indica o país ou marca o sítio no mapa.' : '.'));
-  note.append(h('p', { class: 'mono', style: 'margin:0' }, 'Mapa simplificado. Cada pino usa a localização marcada, o GPS das fotos ou o centro do país.'));
-  root.append(note);
+    canWrite ? '. Edita a viagem e indica o país ou marca o sítio no mapa.' : '.')));
   return root;
 }
 
-/* "Neste dia" */
+/* separador Viagens */
+function matchTrip(t, q) {
+  if (!q) return true;
+  const hay = fold([t.title, t.place, t.country, t.note, (t.tags || []).join(' '), Object.values(t.days || {}).join(' '), (t.photos || []).map(p => p.caption).join(' ')].join(' '));
+  return q.split(/\s+/).every(w => hay.includes(w));
+}
 function memories() {
   const now = new Date(), md = pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()), y = now.getFullYear();
   const out = [];
@@ -577,7 +609,7 @@ function render() {
   const page = view.name === 'trip' ? renderTrip() : renderHome();
   if (ui.discreet) page.prepend(h('div', { class: 'discreet-bar', role: 'status' }, h('span', {}, 'Modo discreto ligado: fotos e textos estão desfocados.'), h('button', { class: 'btn sm', type: 'button', onclick: toggleDiscreet }, 'Desligar')));
   if (spy && view.name !== 'trip') { spy.disconnect(); spy = null; }
-  const wrapEl = document.querySelector('.wrap'); if (wrapEl) { wrapEl.classList.toggle('wide', false); wrapEl.classList.toggle('full', view.name === 'trip'); }
+  const wrapEl = document.querySelector('.wrap'); if (wrapEl) { wrapEl.classList.toggle('wide', false); wrapEl.classList.toggle('full', true); }
   $('#app').replaceChildren(page);
   window.scrollTo(0, y);
 }
