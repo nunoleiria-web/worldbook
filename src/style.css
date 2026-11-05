@@ -745,3 +745,8 @@ h1, h2, h3, b.num { font-synthesis: none; }
 }
 .hm-menu .only-m { display: none; }
 @media (max-width: 900px) { .hm-menu .only-m { display: inline-flex; } }
+.theme-sw { display: grid; gap: 6px; padding: 4px 4px 8px; border-bottom: 1px solid var(--line); margin-bottom: 2px; }
+.theme-sw > span { font: 500 0.66rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); padding-left: 4px; }
+.theme-sw > div { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--hover); }
+.theme-sw button { flex: 1; min-height: 34px; border: 0; border-radius: 8px; background: none; cursor: pointer; font: 600 0.8rem var(--body); color: var(--ink-2); }
+.theme-sw button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / 0.15); }

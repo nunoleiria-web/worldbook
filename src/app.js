@@ -169,6 +169,7 @@ function renderHome() {
     h('summary', { 'aria-label': 'Mais opções', title: 'Mais opções' }, h('span', { 'aria-hidden': 'true' }, '•••')),
     h('div', { class: 'hm-menu' },
       (() => { const b = importBtn(); if (b) b.classList.add('only-m'); return b; })(),
+      themeSwitch(),
       backupBtns(),
       h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': ui.discreet ? 'true' : 'false', title: 'Desfoca fotos e textos para mostrares o ecrã a outras pessoas', onclick: toggleDiscreet }, ui.discreet ? 'Desligar modo discreto' : 'Modo discreto')));
   const brand = h('button', { class: 'hm-brand', type: 'button', onclick: () => setTab('mapa') }, h('span', { class: 'mk', 'aria-hidden': 'true' }), h('span', {}, 'Álbum de viagens'));
@@ -1617,7 +1618,28 @@ document.addEventListener('keydown', e => {
 });
 
 /* ---------- arranque ---------- */
+/* aparência: claro por omissão, escolha guardada neste navegador */
+let themePref = 'claro', themeWant = 'light', themeObs = null;
+function wantedTheme() { if (themePref === 'escuro') return 'dark'; if (themePref === 'auto') { try { return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch (e) { return 'light'; } } return 'light'; }
+function applyTheme() {
+  themeWant = wantedTheme();
+  const r = document.documentElement;
+  if (r.getAttribute('data-theme') !== themeWant) r.setAttribute('data-theme', themeWant);
+  r.style.colorScheme = themeWant;
+  if (!themeObs && window.MutationObserver) { themeObs = new MutationObserver(() => { if (r.getAttribute('data-theme') !== themeWant) r.setAttribute('data-theme', themeWant); }); themeObs.observe(r, { attributes: true, attributeFilter: ['data-theme'] }); }
+}
+function setThemePref(p) {
+  themePref = p; try { localStorage.setItem('album-tema', p); } catch (e) { /* sem armazenamento */ }
+  applyTheme(); try { bkMapMemo.clear(); } catch (e) { /* */ } render();
+}
+function themeSwitch() {
+  return h('div', { class: 'theme-sw', role: 'group', 'aria-label': 'Aparência' }, h('span', {}, 'Aparência'),
+    h('div', {}, [['claro', 'Claro'], ['escuro', 'Escuro'], ['auto', 'Auto']].map(([k, l]) => h('button', { type: 'button', 'aria-pressed': themePref === k ? 'true' : 'false', onclick: () => setThemePref(k) }, l))));
+}
 async function init() {
+  try { const tp = localStorage.getItem('album-tema'); if (tp === 'escuro' || tp === 'auto' || tp === 'claro') themePref = tp; } catch (e) { /* sem armazenamento */ }
+  applyTheme();
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (themePref === 'auto') { applyTheme(); render(); } }); } catch (e) { /* */ }
   { const fs = document.createElement('style'); fs.textContent = Object.values(FONT_FACES).join('\n'); document.head.append(fs); try { document.fonts.load('400 12px "Instrument Sans"'); document.fonts.load('700 12px "Instrument Sans"'); document.fonts.load('400 12px "DM Mono"'); } catch (e) { /* ignora */ } }
   try { ui.discreet = !!localStorage.getItem('album-discreto'); } catch (e) { /* sem armazenamento */ }
   document.body.classList.toggle('discreet', ui.discreet);
