@@ -1,0 +1,1841 @@
+<title>Álbum de Viagens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: capa de correio aéreo no topo, separadores (mapa, viagens, ano, fotos), página de viagem com diário por dia. */
+:root {
+  --bg: #F1F2EE;
+  --surface: #FFFFFF;
+  --ink: #14201D;
+  --ink-2: #55635F;
+  --line: #D5DAD5;
+  --hover: #E6E9E4;
+  --accent: #C8341B;
+  --on-accent: #FFFFFF;
+  --blue: #1F3F9E;
+  --stripe-a: #C8341B;
+  --stripe-b: #1F3F9E;
+  --sea: #E1E9E7;
+  --land: #FFFFFF;
+  --coast: #A5B5B1;
+  --grat: #CFDAD7;
+  --scrim: rgb(8 12 11 / 0.94);
+  --scrim-ink: #EEF2F0;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "DM Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1614; --surface: #18221F; --ink: #E9EEEB; --ink-2: #9BAAA5; --line: #2A3834;
+    --hover: #223029; --accent: #FF7456; --on-accent: #1B0A05; --blue: #8EA8FF;
+    --stripe-a: #E2543A; --stripe-b: #4A6BE0;
+    --sea: #131E1C; --land: #22322E; --coast: #3B4F4A; --grat: #1C2A27; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1614; --surface: #18221F; --ink: #E9EEEB; --ink-2: #9BAAA5; --line: #2A3834;
+  --hover: #223029; --accent: #FF7456; --on-accent: #1B0A05; --blue: #8EA8FF;
+  --stripe-a: #E2543A; --stripe-b: #4A6BE0;
+  --sea: #131E1C; --land: #22322E; --coast: #3B4F4A; --grat: #1C2A27; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--body); margin: 0; }
+button, input, textarea, select { font: inherit; color: inherit; }
+img { display: block; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.airmail {
+  height: 10px;
+  background: repeating-linear-gradient(-45deg,
+    var(--stripe-a) 0 14px, var(--bg) 14px 22px, var(--stripe-b) 22px 36px, var(--bg) 36px 44px);
+}
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 96px;
+}
+
+.mono { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.02em; color: var(--ink-2); }
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; margin-bottom: 22px; }
+.top > div { min-width: 0; }
+h1 { font: 700 clamp(2.2rem, 7vw, 3.9rem)/1 var(--display); letter-spacing: -0.025em; margin: 0 0 12px; text-wrap: balance; }
+h2.year { font: 500 0.9rem var(--mono); letter-spacing: 0.08em; color: var(--ink-2); margin: 0 0 16px; display: flex; align-items: center; gap: 14px; }
+h2.year::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+h2.sec { font: 600 1.3rem/1.2 var(--display); margin: 0 0 14px; letter-spacing: -0.01em; }
+h3 { font: 600 1.2rem/1.2 var(--display); margin: 0; letter-spacing: -0.01em; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0.55rem 1.1rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--ink); background: transparent; font-weight: 600; font-size: 0.95rem;
+}
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn.quiet { border-color: var(--line); }
+.btn.danger { border-color: var(--accent); color: var(--accent); }
+.btn.sm { min-height: 36px; padding: 0.3rem 0.8rem; font-size: 0.85rem; }
+.btn[disabled] { opacity: 0.5; cursor: default; }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* separadores */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 26px; overflow-x: auto; }
+.tab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px 9px; cursor: pointer; font: 600 0.95rem var(--body); color: var(--ink-2); min-height: 44px; white-space: nowrap; margin-bottom: -1px; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* barra de filtros */
+.bar { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-bottom: 22px; }
+.search { flex: 1 1 220px; min-width: 0; }
+.input { width: 100%; min-height: 44px; padding: 0.55rem 0.7rem; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.surface .input { background: var(--bg); }
+textarea.input { min-height: 96px; resize: vertical; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 12px; font: 500 0.82rem var(--mono); cursor: pointer; min-height: 32px; color: var(--ink-2); }
+.chip:hover { background: var(--hover); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip.static { cursor: default; }
+.chip.static:hover { background: transparent; }
+
+/* viagens */
+.years { display: flex; flex-direction: column; gap: 44px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 30px 22px; }
+.card { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cover { position: relative; aspect-ratio: 4 / 3; width: 100%; overflow: hidden; border-radius: 3px; border: 1px solid var(--line); background: var(--hover); }
+.cover img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+.card:hover .cover img { transform: scale(1.03); }
+.cover.ph { display: flex; align-items: flex-end; padding: 14px; color: #fff; border-color: transparent; }
+.cover.ph span { font: 500 0.85rem var(--mono); letter-spacing: 0.04em; opacity: 0.92; }
+.heart { position: absolute; top: 8px; right: 8px; background: rgb(8 12 11 / 0.55); color: #fff; border-radius: 999px; width: 28px; height: 28px; display: grid; place-items: center; font-size: 0.95rem; }
+.card p { margin: 0; }
+.card .place { color: var(--ink-2); }
+.card .mono { margin-top: 2px; }
+.tagline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.tagline span { font: 500 0.72rem var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+
+.timeline { position: relative; display: flex; flex-direction: column; gap: 28px; padding-left: 22px; border-left: 2px solid var(--line); margin-left: 6px; }
+.tl-item { position: relative; display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.tl-item::before { content: ""; position: absolute; left: -30px; top: 8px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); }
+.tl-item .body { min-width: 0; display: grid; gap: 4px; }
+.tl-item .body p { margin: 0; color: var(--ink-2); max-width: 60ch; overflow-wrap: anywhere; }
+.tl-item .body .clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.memory { border: 1px solid var(--line); border-left: 4px solid var(--blue); background: var(--surface); border-radius: 4px; padding: 14px 16px; margin-bottom: 26px; display: grid; gap: 10px; }
+.memory h2 { font: 600 1.05rem var(--display); margin: 0; }
+.memory .thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.memory .thumbs button { width: 84px; height: 64px; padding: 0; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; cursor: pointer; background: var(--hover); }
+.memory .thumbs img { width: 100%; height: 100%; object-fit: cover; }
+
+.empty { border: 1px dashed var(--ink-2); border-radius: 4px; padding: 44px 24px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; max-width: 680px; }
+.empty h2 { font: 600 1.6rem/1.15 var(--display); margin: 0; text-wrap: balance; }
+.empty p { margin: 0; color: var(--ink-2); max-width: 54ch; }
+
+/* mapa */
+.mapbox { position: relative; width: 100%; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--sea); user-select: none; -webkit-user-select: none; }
+.mapbox svg { display: block; width: 100%; height: auto; touch-action: pan-y; cursor: default; }
+.mapbox.zoomed svg { touch-action: none; cursor: grab; }
+.mapbox.dragging svg { cursor: grabbing; }
+.mapbox.pick svg { cursor: crosshair; }
+.mapctl { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.mapctl button { width: 38px; height: 38px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 4px; cursor: pointer; font: 600 1.1rem var(--body); }
+.mapctl button:hover { background: var(--hover); }
+.pin { cursor: pointer; }
+.pin:focus-visible { outline: none; }
+.pin:focus-visible circle.ring { stroke: var(--blue); stroke-width: 3; }
+.mapnote { display: grid; gap: 18px; margin-top: 18px; }
+.sel { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; align-items: center; border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: var(--surface); }
+.sel .cover { aspect-ratio: 4 / 3; }
+.sel > div { min-width: 0; display: grid; gap: 4px; justify-items: start; }
+.sel p { margin: 0; }
+.nolocs { color: var(--ink-2); font-size: 0.95rem; }
+.nolocs button { background: none; border: 0; border-bottom: 1px solid var(--ink-2); padding: 0; cursor: pointer; color: var(--ink); }
+
+/* ano */
+.yearbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.yearbar h2 { font: 700 2rem/1 var(--display); margin: 0; min-width: 4ch; text-align: center; }
+.months { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 24px 20px; }
+.month h3 { font: 500 0.8rem var(--mono); letter-spacing: 0.06em; color: var(--ink-2); text-transform: uppercase; margin: 0 0 8px; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal .wd { font: 500 0.65rem var(--mono); color: var(--ink-2); text-align: center; }
+.cal .d { aspect-ratio: 1; display: grid; place-items: center; font: 400 0.72rem var(--mono); border-radius: 3px; color: var(--ink-2); border: 0; background: transparent; padding: 0; }
+.cal button.d { cursor: pointer; color: #fff; font-weight: 500; }
+.cal button.d:hover { filter: brightness(1.12); }
+.legend { margin-top: 26px; display: grid; gap: 8px; }
+.legend button { display: flex; gap: 12px; align-items: baseline; background: none; border: 0; padding: 6px 0; text-align: left; cursor: pointer; border-bottom: 1px solid var(--line); }
+.legend i { width: 12px; height: 12px; border-radius: 3px; flex: none; transform: translateY(1px); }
+
+/* fotos */
+.wall { column-width: 210px; column-gap: 14px; }
+.wall figure { break-inside: avoid; margin: 0 0 14px; position: relative; }
+.photo { display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 3px; background: var(--hover); cursor: zoom-in; overflow: hidden; }
+.photo img { width: 100%; height: auto; }
+.wall figcaption { font: 400 0.8rem/1.35 var(--mono); color: var(--ink-2); padding-top: 6px; overflow-wrap: anywhere; }
+.wall .heart { pointer-events: none; }
+.month-h { font: 500 0.85rem var(--mono); letter-spacing: 0.06em; color: var(--ink-2); text-transform: uppercase; margin: 26px 0 12px; }
+.month-h:first-child { margin-top: 0; }
+.drop { border: 1px dashed var(--ink-2); border-radius: 4px; padding: 36px 20px; display: grid; gap: 12px; justify-items: start; max-width: 640px; }
+.drop.over, .wall.over { outline: 2px dashed var(--blue); outline-offset: 6px; }
+.drop p { margin: 0; color: var(--ink-2); }
+
+/* viagem */
+.back { background: none; border: 0; padding: 8px 0; cursor: pointer; font: 500 0.85rem var(--mono); color: var(--ink-2); margin-bottom: 14px; min-height: 44px; }
+.back:hover { color: var(--ink); }
+.trip-head { display: grid; gap: 14px; margin-bottom: 28px; }
+.trip-head .where { font: 500 1.15rem var(--display); color: var(--ink-2); margin: 0; }
+.trip-head .note { max-width: 62ch; margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.trip-mini { max-width: 640px; margin-bottom: 34px; }
+.days { display: grid; gap: 34px; }
+.day { display: grid; gap: 12px; }
+.day-h { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.day-h b { font: 600 1.1rem var(--display); }
+.day textarea { min-height: 72px; max-width: 70ch; }
+.day .txt { margin: 0; max-width: 70ch; white-space: pre-wrap; overflow-wrap: anywhere; }
+.day .wall { column-width: 160px; column-gap: 10px; }
+.day .wall figure { margin-bottom: 10px; }
+.day.empty-day { gap: 6px; }
+.day.empty-day .day-h b { font: 500 0.95rem var(--display); color: var(--ink-2); }
+
+.status {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 90; max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 4px;
+  font: 500 0.85rem var(--mono); box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
+}
+
+/* janelas */
+.backdrop {
+  position: fixed; inset: 0; z-index: 60; background: var(--scrim); display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.panel { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; width: 100%; max-width: 560px; max-height: 100%; overflow: auto; padding: 24px; }
+.panel.wide { max-width: 720px; }
+.panel h2 { font: 700 1.6rem/1.1 var(--display); margin: 0 0 18px; letter-spacing: -0.015em; }
+.panel p.help { margin: 0 0 14px; color: var(--ink-2); font-size: 0.95rem; }
+form { display: grid; gap: 14px; }
+.f { display: grid; gap: 5px; min-width: 0; }
+.f label { font: 500 0.78rem var(--mono); letter-spacing: 0.04em; color: var(--ink-2); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.err { color: var(--accent); font-size: 0.9rem; margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-top: 6px; }
+.locrow { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.proposal { border: 1px solid var(--line); border-radius: 4px; padding: 14px; display: grid; gap: 10px; margin-bottom: 12px; }
+.proposal.off { opacity: 0.55; }
+.proposal .head { display: flex; gap: 12px; align-items: center; }
+.proposal .head input[type="checkbox"] { width: 20px; height: 20px; flex: none; }
+.proposal .thumbs { display: flex; gap: 6px; overflow-x: auto; }
+.proposal .thumbs img { width: 56px; height: 44px; object-fit: cover; border-radius: 3px; flex: none; border: 1px solid var(--line); }
+
+/* visualizador de fotos */
+.lb {
+  position: fixed; inset: 0; z-index: 70; background: var(--scrim); color: var(--scrim-ink);
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.lb .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; }
+.lb .mono { color: var(--scrim-ink); opacity: 0.8; }
+.lb .btn { border-color: var(--scrim-ink); color: var(--scrim-ink); }
+.lb .btn:hover { background: rgb(255 255 255 / 0.12); }
+.lb .btn.danger { border-color: #FF7456; color: #FF7456; }
+.lb .btn[aria-pressed="true"] { background: var(--scrim-ink); color: #0b0f0e; }
+.stage { position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.stage img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.nav { position: absolute; top: 50%; transform: translateY(-50%); min-width: 44px; padding-inline: 0; background: rgb(8 12 11 / 0.55); }
+.nav.prev { left: 0; } .nav.next { right: 0; }
+.lb .foot { display: grid; gap: 10px; max-width: 760px; width: 100%; margin: 0 auto; }
+.lb .input { background: transparent; border-color: rgb(255 255 255 / 0.35); color: var(--scrim-ink); }
+.lb .cap { margin: 0; min-height: 24px; text-align: center; overflow-wrap: anywhere; }
+.lb .meta { text-align: center; margin: 0; }
+
+/* modo discreto */
+body.discreet .cover img, body.discreet .photo img, body.discreet .stage img, body.discreet .memory img, body.discreet .proposal img { filter: blur(16px); }
+body.discreet .note, body.discreet .txt, body.discreet .day textarea, body.discreet figcaption { filter: blur(6px); }
+
+/* livro */
+.bk { position: fixed; inset: 0; z-index: 70; background: var(--scrim); color: var(--scrim-ink); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.bk .bar { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.bk .mono { color: var(--scrim-ink); opacity: 0.8; }
+.bk .btn { border-color: var(--scrim-ink); color: var(--scrim-ink); }
+.bk .btn:hover { background: rgb(255 255 255 / 0.12); }
+.bk .stagebox { min-height: 0; display: grid; place-items: center; overflow: hidden; }
+.bk .stagebox .pg { width: min(100%, calc((100vh - 170px) * 1.4143)); }
+.bk .foot { display: flex; gap: 12px; align-items: center; justify-content: center; }
+
+/*BOOK-START*/
+.pg { container-type: inline-size; position: relative; width: 100%; aspect-ratio: 297 / 210; background: #fff; color: #1a2321; overflow: hidden; font-family: "Source Sans 3", system-ui, "Segoe UI", sans-serif; font-size: 1.5cqw; line-height: 1.45; box-shadow: 0 8px 40px rgb(0 0 0 / 0.35); text-align: left; }
+.pg * { box-sizing: border-box; }
+.pg .mn { font-family: "DM Mono", ui-monospace, Menlo, monospace; font-size: 1.15cqw; letter-spacing: 0.04em; color: #5b6965; }
+.pg h2 { font-family: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; font-weight: 700; margin: 0; letter-spacing: -0.02em; line-height: 1.05; }
+.pg.cover { color: #fff; }
+.pg.cover img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pg.cover .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(0 0 0 / 0.05) 35%, rgb(0 0 0 / 0.68)); }
+.pg.cover .t { position: absolute; left: 5cqw; right: 5cqw; bottom: 5cqw; display: grid; gap: 1cqw; }
+.pg.cover h2 { font-size: 8cqw; text-wrap: balance; }
+.pg.cover .mn { color: rgb(255 255 255 / 0.9); font-size: 1.3cqw; }
+.pg.cover .sub { font-size: 2.2cqw; margin: 0; opacity: 0.95; }
+.pg.mp { display: grid; grid-template-columns: 30% 1fr; gap: 3cqw; padding: 4.5cqw; align-items: center; }
+.pg.mp h2 { font-size: 3.6cqw; margin-bottom: 1.2cqw; }
+.pg.mp .mapw { border: 1px solid #d5dad5; border-radius: 0.5cqw; overflow: hidden; align-self: stretch; display: grid; }
+.pg.mp .mapw svg { width: 100%; height: 100%; display: block; }
+.pg.day { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 1.6cqw; padding: 3.2cqw; }
+.pg.day .hd { display: flex; align-items: baseline; gap: 1.4cqw; }
+.pg.day .hd b { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 2.2cqw; }
+.pg.day .bd { display: grid; grid-template-columns: 1fr; gap: 2.4cqw; min-height: 0; }
+.pg.day.has-txt .bd { grid-template-columns: 34% minmax(0, 1fr); }
+.pg.day .tx { white-space: pre-wrap; overflow: hidden; font-size: 1.75cqw; line-height: 1.5; overflow-wrap: anywhere; }
+.pg.day.only-txt .bd { grid-template-columns: minmax(0, 1fr); }
+.pg.day.only-txt .tx { font-size: 2.3cqw; max-width: 70%; }
+.pg .ph { display: grid; gap: 1cqw; min-height: 0; min-width: 0; }
+.pg .ph img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 0; min-width: 0; border-radius: 0.3cqw; }
+.pg .ph.l2h { grid-template-columns: 1fr 1fr; }
+.pg .ph.l2v { grid-template-rows: 1fr 1fr; }
+.pg .ph.l3 { grid-template-columns: 1.5fr 1fr; grid-template-rows: 1fr 1fr; }
+.pg .ph.l3 img:first-child { grid-row: 1 / 3; }
+.pg .ph.l4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.pg.end { display: grid; place-items: center; text-align: center; background: #14201d; color: #eef2f0; }
+.pg.end .inner { display: grid; gap: 2cqw; justify-items: center; }
+.pg.end h2 { font-size: 5cqw; }
+.pg.end .nums { display: flex; gap: 5cqw; }
+.pg.end .nums b { display: block; font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 5.5cqw; line-height: 1; }
+.pg.end .nums span { font-family: "DM Mono", ui-monospace, monospace; font-size: 1.2cqw; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
+/*BOOK-END*/
+
+@media (max-width: 640px) {
+  .two { grid-template-columns: 1fr; }
+  .panel { padding: 18px; }
+  .tl-item { grid-template-columns: 1fr; gap: 10px; }
+  .sel { grid-template-columns: 90px minmax(0, 1fr); }
+  .bk .stagebox .pg { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover img { transition: none; }
+}
+
+</style>
+<div class="airmail" aria-hidden="true"></div>
+<div class="wrap"><main id="app"></main></div>
+<div id="status" class="status" role="status" aria-live="polite" hidden></div>
+<input id="file-input" type="file" accept="image/*" multiple hidden>
+<input id="import-input" type="file" accept="image/*" multiple hidden>
+<script>
+/* ===== world.js: mapa-múndi simplificado e países (desenhado à mão, baixa resolução) ===== */
+/* Polígonos em "lon,lat" separados por espaço. Mares interiores desenhados por cima. */
+const LAND = [
+/* América do Norte (até ao Panamá) */
+"-168,65.7 -166,68.3 -156.6,71.3 -141,69.7 -135,69.5 -128,70.2 -115,67.8 -109,68 -98,67.8 -94,71.5 -90,68.5 -86,66.8 -90,63.5 -94,58.8 -92,57 -85,55.3 -80.5,51.5 -79,55 -77.5,60 -77.5,62.5 -74,62.3 -69,60.5 -68,58.5 -64.5,60.3 -61.5,56.5 -57,52.5 -56,51.5 -60,50.3 -66,50 -70,47.5 -64.5,49.2 -64.2,48.8 -61,45.5 -66,43.5 -67,45 -70,43.7 -70.5,41.8 -74,40.5 -75.5,38 -76,36.5 -75.5,35.3 -79,33.5 -81,31.5 -80,27 -80.1,25.2 -81.2,25.2 -82.7,28 -83.5,29.7 -85.3,29.6 -88,30.3 -89.3,29 -91,29.2 -94,29.5 -97,27.8 -97.3,25.8 -97.8,22.5 -96.4,19 -95,18.5 -91,18.7 -90.5,21 -87,21.5 -87.5,18.5 -88.3,16 -85,15.9 -83.3,15 -83.7,12 -83.5,10.5 -82,9 -79.5,9.5 -77.4,8.7 -78,7.5 -80,7.3 -81.7,8.2 -83.5,8.7 -85.7,10 -87,13 -90.5,13.9 -94,16 -97,15.8 -101,17.5 -105.5,20 -105.3,22.5 -106.4,23.2 -109,25.5 -112.5,29.5 -114.8,31.8 -114.5,30 -112.8,27 -111,24.5 -109.6,23 -112,24.8 -114.5,27.7 -115.8,29.7 -116.7,31.8 -117.1,32.5 -118.5,34 -121,35 -122.5,37.5 -124.2,40.2 -124.5,43 -124,46.2 -124.7,48.4 -122.8,49 -124,50 -127.5,51 -130,54.5 -133,57 -136,58.5 -140,59.7 -144,60 -148,60.3 -151.5,59.2 -154,57.5 -158,56.5 -163,54.8 -162,56 -158,58.5 -161,58.8 -165,60.5 -165,62.5 -161,64.4 -166,65",
+/* América do Sul */
+"-77.4,8.6 -75.5,10.5 -72,12 -71.5,10.9 -70,12.2 -68,10.5 -64,10.5 -61.5,10.7 -61.5,8.5 -59,7 -57,5.9 -54,5.8 -52,4.7 -51,2.5 -50,1 -50.5,0 -48,-1 -44.5,-2.5 -41,-2.9 -38,-4 -35.2,-5.7 -34.9,-8 -37,-11 -38.9,-13 -39,-17.5 -41,-22 -43.2,-23 -45,-23.8 -48.5,-26 -48.8,-28.5 -50.5,-31 -52.2,-32.5 -53.5,-34 -55,-34.9 -57,-34.4 -58.4,-34.5 -57.5,-36.2 -57,-38 -62,-39 -62.3,-41 -65,-41.2 -64.5,-42.7 -65.3,-45 -67.5,-46.5 -65.8,-48 -68.5,-50.2 -69,-52 -68.4,-53.4 -65.5,-55 -68,-55.6 -71,-54.2 -74,-52 -75.5,-48.5 -73.8,-44 -73.7,-40 -73.5,-37 -71.7,-33 -71.5,-30 -70.7,-26 -70.3,-20 -70.2,-18.3 -75.5,-15.5 -77.5,-12 -79.5,-7.5 -81.2,-5.8 -80.5,-3.5 -80,-2 -81,-1 -80.5,0.5 -79,1.5 -78.5,2.5 -77.5,4 -77.4,6",
+/* Eurásia */
+"-9.5,38.8 -8.9,41.5 -9.3,43.1 -8,43.7 -4,43.5 -1.8,43.4 -1.2,46 -2.3,47.2 -4.8,48.5 -1.6,48.7 -1.2,49.7 1.5,50.2 1.6,50.9 3.2,51.3 4.2,52.3 5,53.2 8.5,53.7 8.6,54.9 8.2,56.5 10.6,57.7 10.4,56.4 9.6,55.5 9.9,54.8 10.9,54 13.5,54.2 18.5,54.7 21,55 21,57 23.5,57.1 24.3,58.4 23.5,59.2 24.7,59.5 28,59.5 30,60 28.5,60.5 26.5,60.4 25,60.1 23,59.95 21.5,60.8 21.5,63 25,65.2 24.5,65.8 22,65.8 17.5,62.5 17.3,60.6 19,59.7 16.7,57.5 16,56.2 14.3,55.5 12.9,55.4 12.5,56.3 11.8,57.7 10.8,59.2 9,58.7 7,58 5.7,58.9 5,60.5 5.2,62 7,62.8 9,63.5 11,64.9 13,67 15.5,68.5 18.5,69.8 23,70.7 28,71 31,70.3 33,69.5 37,69.3 41,67.5 40.5,66.2 36,66.3 34.8,65 34.5,64.2 37,63.8 40,64.6 41,66.2 44,66.2 44,67 46,68 53,68.5 59,68.8 64,69.4 66,70.5 68,73 73,73.5 80,72.5 80,73.5 87,74.7 90,75.5 100,76.5 104,77.7 113,74 120,73 129,72 140,72.7 150,71.3 160,69.7 170,70 180,68.9 180,65.2 178,64.6 177,62.5 173,61.2 170.5,60.3 166,60.2 163,59 162.2,57 160.5,54 158.2,52.3 156.7,51 155.8,53.5 155.6,56 156.4,57.8 158,58.5 160,61.8 163,62 160,61.8 158,59.5 155.5,59.3 150,59.2 145,59.3 142,59 139,57 137,54 138.5,53.8 141,53 141.2,51 140.5,48.5 138.3,46.4 135.5,43.8 133,42.8 131,42.5 130.7,42.3 129.8,41 129.2,39 129.4,37 129.2,35.3 127.5,34.6 126.4,34.7 126.4,36.5 126.6,37.6 125.2,38.5 124.8,39.7 123,39.7 121.6,38.9 121.2,39.6 121.5,40.8 119.5,39.8 117.8,38.9 118.9,37.5 120.3,37.8 122.5,37.4 121,36.4 119.5,35.1 120.5,32.5 121.9,31.3 122,30 121.6,28.5 120.4,26.5 119,25 117,23.2 114.5,22.4 113.5,22.2 111,21.5 110,20.3 108.8,21.7 106.8,20.7 105.8,19 107.5,16.5 108.7,15.2 109.4,12.8 109.1,11.4 107,10.3 105.2,8.8 104.8,10.3 103.2,10.9 102.3,12.3 100.9,13.4 100,12.8 99.9,10.5 100.5,7 102.2,6.1 103.4,4.5 104.2,2.5 104.1,1.3 103.6,1.1 102.3,2.2 101,3.2 100.3,5.2 99.8,6.6 98.4,8 98.5,10 98.8,12.2 97.7,15.8 97.5,16.9 95.3,15.8 94.5,17 94,19 92.3,20.7 91.7,22.4 90.5,22.1 89,21.7 87,21.2 86.7,20.2 85,19.3 83.5,18 82.3,16.6 80.8,15.8 80.2,13.7 80.3,11.2 79.8,10.3 79.1,9.2 78.1,8.5 77.5,8.1 76.5,9.3 75.4,11.8 74.7,13.9 73.8,16 72.9,19 72.8,21.2 70.5,20.8 69,22.3 68.5,23.5 67,24.6 66.5,25.4 64,25.2 61.5,25.1 58.3,25.6 57,27 55.2,26.7 53.5,26.7 51.5,27.9 50.2,29.9 48.8,30.2 48,30 48.4,29.4 48.8,28.5 50.1,26.9 51.2,26 51.5,24.7 52.5,24.2 54.5,24.3 55,25.3 55.8,25.8 56.4,26.2 56.3,24.9 57.2,23.9 58.8,23.5 59.8,22.4 58.7,20.5 57.8,19 56.5,17.9 55,17 52.5,16 49,14.4 45,12.8 43.5,12.7 42.7,14.5 42.9,16 41.5,18.8 39.5,21.4 38.2,24.2 36.8,26.1 35.2,28.1 34.9,29.5 34.2,27.8 33.6,28.5 32.6,29.9 32.3,31.2 34.2,31.3 34.9,32.7 35.5,34 35.9,35.5 36,36.3 35.5,36.7 34,36.3 32.5,36.1 30.6,36.6 29.5,36.2 28,36.7 27.4,37.4 26.4,38.3 26.8,39.2 26.2,39.9 26.4,40.6 25,40.9 23.5,40.3 22.6,40.3 22.7,39.1 23.6,38.3 24.1,37.7 23.6,37.9 22.9,37.95 23.2,36.5 22.5,36.4 21.7,36.8 21.2,38 21,39.2 19.9,39.8 19.4,41.8 18.5,42.5 16.5,43.3 15,44.3 14.3,45.2 13.7,45.6 12.4,45.3 12.5,44 14.2,42.4 16.2,41.9 18.5,40.2 17.1,40.5 16.6,39.5 17.1,38.9 16,37.9 15.7,38.9 15.6,40 14.2,40.8 12.4,41.5 11,42.4 10.3,43.8 8.8,44.4 7.5,43.8 6.2,43.1 4.7,43.4 3.2,43.1 3.2,42 1,41.1 -0.3,39.5 0.2,38.7 -0.8,37.6 -2,36.8 -4.5,36.7 -5.4,36 -6.3,36.6 -7.4,37.15 -7.9,36.95 -8.9,36.95",
+/* África */
+"-5.9,35.8 -2.9,35.3 0,36.5 3,36.8 8,37 10.2,37.3 10.9,36.9 11.1,35.2 10.1,34.2 11.5,33.1 15.3,32.3 15.5,31.4 17.5,30.8 19.9,30.3 20.1,32.2 22,32.9 25,32.7 29,30.9 31.5,31.5 32.3,31.2 32.6,29.9 33.6,27.5 34.5,25 35.5,23.5 37.2,21.2 37.4,18.5 38.6,17.5 39.5,15.5 41,14.5 43,12.7 44,10.4 47.5,11.2 51.2,11.8 51,10.4 49.5,6 47.5,4.2 44,1.5 42,-0.9 40.2,-2.8 39.2,-4.7 38.8,-6.5 39.5,-8.5 40.5,-10.5 40.5,-14.5 37,-17.3 35,-20 35.5,-24 33,-25.8 32.8,-26.5 32.9,-28.5 30.8,-31 28.5,-32.6 26,-33.7 22,-34.2 20,-34.8 18.5,-34.35 18.3,-33.9 18.3,-32.5 17,-29 15,-26.8 14.5,-22.5 13,-20 11.8,-17.2 12.5,-13.5 13.7,-11.5 12.3,-6.1 9.3,-1.5 9.5,1.5 9.7,3.9 7.5,4.4 5,5.7 3,6.4 1.2,6.1 -2,4.8 -4.5,5.2 -7.5,4.4 -9.5,5.2 -13,8.5 -15,10.8 -16.7,12.4 -17.5,14.7 -16.5,19 -16.3,21 -14.5,26 -13,27.9 -10,29.5 -9.7,31 -8.5,33.2 -6.8,34",
+/* Austrália */
+"113.5,-22 114,-26 115,-30 115,-34.3 118,-35 122,-33.9 126,-32.3 131,-31.5 134,-32.5 137.8,-35 139.5,-36.5 140.5,-38 144,-38.5 146,-39 147.5,-38 150,-37.4 151.4,-34 153,-31 153.5,-28 152.5,-25 150,-22.5 148.5,-20.2 146.3,-18.7 145.3,-15 143.5,-14 142.5,-10.8 141.6,-13 141.5,-16.5 139,-17.5 136.5,-15.8 135.5,-14.7 136.8,-12.2 132,-11.5 130,-13 129.5,-15 126,-14 123.5,-17 121,-19.5 117,-20.7 114,-22",
+/* Gronelândia */
+"-73,78.5 -62,82 -30,83.5 -18,81.5 -20,75 -22,70.5 -32,68 -40,65 -43.5,60 -48,61 -52,65 -54,69.5 -58,75 -68,76.5",
+/* Ilhas árticas do Canadá e Terra Nova */
+"-80,73.5 -68,70 -62,66.5 -65,63 -72,63.5 -78,65 -86,66 -90,70",
+"-118,70.5 -105,73 -100,70 -108,68.7 -117,69",
+"-90,76.5 -75,78.5 -62,82.2 -80,83 -95,81",
+"-59.3,47.6 -55.5,51.5 -53,46.7 -52.7,47.5 -59,47.6",
+/* Caraíbas */
+"-85,21.9 -83,22.9 -82.3,23.2 -80,23 -77,21.9 -74.2,20.2 -77.7,19.9 -82.5,22.2",
+"-74.4,18.4 -72,19.9 -68.4,18.6 -71,17.6",
+"-78,18.4 -76.3,18.2 -77.2,17.7",
+"-67.2,18.5 -65.7,18.4 -66,17.9",
+/* Islândia, Reino Unido, Irlanda */
+"-24,65.5 -22,66.4 -15,66.3 -13.5,65 -18,63.4 -22.5,63.8",
+"-5.7,50.1 1.4,51.2 1.7,52.7 -0.2,54 -1.6,55.7 -2.2,57.5 -3.3,58.6 -5,58.6 -6,57.5 -5.6,56 -4.8,54.7 -3,54 -3.1,53.3 -4.6,53.3 -4.2,52.3 -5.2,51.7 -3.1,51.4 -4.2,51.2",
+"-6,52.2 -6,54.1 -5.5,55 -7.2,55.3 -8.6,54.3 -10,54 -10.4,52.1 -8.5,51.6 -6.3,52.2",
+/* Mediterrâneo e Báltico: ilhas */
+"11,55.3 12.5,55.3 12.7,55.7 12.6,56 11.2,55.9",
+"12.4,38 15.6,38.2 15.1,36.7 12.5,37.6",
+"8.2,41 9.7,41 9.6,39.2 8.5,39",
+"8.6,42.3 9.5,43 9.5,41.4",
+"23.5,35.5 26.3,35.3 24,35.1",
+"32.3,35 34.5,35.6 33,34.6",
+/* Japão e Sacalina */
+"131,34 133,35.5 136,36.8 137.3,37.5 139.5,38.5 140,40.8 141.5,41.4 142,39.5 141,37 140.8,35.7 139.8,35 138.5,34.7 136.8,34.3 135.2,33.5 134.5,34.7 132.5,34.2",
+"140,41.5 141,45.3 142.5,45.4 145.5,43.3 143.2,42 141,42.3",
+"130,33.5 131.8,33.5 131.5,31.4 130.2,31.2",
+"132.5,33.8 134.5,34.2 133,33",
+"142,46 143.2,49 142.7,53.5 142,54.3 142,51 141.8,48",
+/* Ásia: ilhas */
+"120.1,23 121.5,25.2 122,24.8 120.8,22",
+"108.7,19.3 110.5,20.1 111,19.5 109.5,18.2",
+"79.8,9.2 81.8,7.5 81.2,6.2 80,6.2 79.7,8",
+"120.5,18.5 122.2,18.4 121.8,16 124,13 122,13.7 121,14 120.6,16",
+"122,7.5 125.5,9.7 126.5,7 125.5,5.8 123,7",
+"109,1.5 110.5,2 111.5,2.8 113,3.2 114.5,4.5 116,6.8 117.5,7 118.5,5 117.6,4 118,1.5 117.5,1 116.5,-1.5 116,-4 114.5,-3.8 112,-3.4 110.2,-2.9 109.2,-1",
+"95.3,5.6 97.5,5.2 100.3,2.5 103.4,-0.5 106,-3 105.8,-5.8 104.6,-5.9 102.3,-4 100.4,-1 98.5,1.5 96,3.8",
+"105.2,-6.8 108.5,-6.5 111,-6.5 114.4,-7.7 114,-8.7 110,-8.3 106.5,-7.4 105.3,-6.9",
+"119.5,0.5 121,1.3 125,1.6 123,0.2 121.5,-1 122.8,-4.5 121,-3 120.2,-5.5 119.4,-5.6 119.7,-3",
+"131,-0.8 134,-0.8 138,-1.6 141,-2.6 145,-4.5 147.5,-6 150.5,-10.5 148,-10.2 145,-7.8 143,-9 141,-9.2 138,-8.4 137.5,-5.2 135,-4.5 132.5,-3.7 133,-2.4",
+/* Ártico russo */
+"51.5,71.5 56,70.7 58,74 66,76.6 68.5,76.7 60,75 55,73",
+"11,79.5 17,80.3 25,80.2 27,78.7 16,76.6 13,78",
+/* África e Oceânia: ilhas */
+"49.3,-12 50.5,-15.5 49.5,-18 47.3,-24.9 45,-25.6 43.7,-23 44.5,-19.5 46,-15.8 47.7,-13.5",
+"172.8,-34.5 175.5,-37 178.5,-37.7 177.5,-39.5 175.2,-41.6 174.7,-39.8 173.8,-39.2 174.5,-37",
+"172.7,-40.5 174.2,-41.3 173,-43.5 171,-44.5 170.5,-46.5 167,-46.2 166.5,-45.5 168.5,-44 171,-41.7",
+"144.7,-40.7 148.3,-40.9 148,-43 146,-43.6 145.3,-42.2",
+"178,-17 179.8,-16.5 178.5,-18.2"
+];
+/* Mares interiores (desenhados por cima da terra, com a cor do mar) */
+const SEAS = [
+"27.8,41.9 28.7,44 30.8,46.2 33.5,46 32.5,45.4 34.5,44.8 36.5,45.4 38,47 39.5,47 37.5,44.8 41.5,42.2 41.8,41.5 38,41 35,42 31,41.2 29,41.2",
+"47,45 49.5,46.4 53,45.2 51,44.5 51,42.5 53,41 54,37.5 50.5,37 49,38.5 48.8,40.5 50,40.3 48,42 47,43.5",
+"-90,48.2 -84,46.5 -80,45 -82,43 -86,42.2 -88,44 -87,46"
+];
+
+/* Países: código | nome (PT) | lat | lng | continente (E,A,F,N,S,O) */
+const COUNTRY_ROWS = `PT|Portugal|39.6|-8|E
+ES|Espanha|40.2|-3.6|E
+FR|França|46.6|2.4|E
+IT|Itália|42.8|12.5|E
+DE|Alemanha|51.1|10.4|E
+GB|Reino Unido|54|-2.5|E
+IE|Irlanda|53.2|-8|E
+NL|Países Baixos|52.2|5.3|E
+BE|Bélgica|50.6|4.6|E
+LU|Luxemburgo|49.8|6.1|E
+CH|Suíça|46.8|8.2|E
+AT|Áustria|47.5|14.5|E
+DK|Dinamarca|56|9.5|E
+NO|Noruega|61|9|E
+SE|Suécia|62|15|E
+FI|Finlândia|64.5|26|E
+IS|Islândia|64.9|-18.5|E
+PL|Polónia|52|19.4|E
+CZ|Chéquia|49.8|15.5|E
+SK|Eslováquia|48.7|19.6|E
+HU|Hungria|47.2|19.4|E
+RO|Roménia|45.9|25|E
+BG|Bulgária|42.7|25.5|E
+GR|Grécia|39|22|E
+HR|Croácia|45.2|15.5|E
+SI|Eslovénia|46.1|14.8|E
+RS|Sérvia|44|20.8|E
+BA|Bósnia e Herzegovina|44|17.8|E
+ME|Montenegro|42.7|19.3|E
+AL|Albânia|41.1|20|E
+MK|Macedónia do Norte|41.6|21.7|E
+XK|Kosovo|42.6|20.9|E
+MD|Moldávia|47.2|28.4|E
+UA|Ucrânia|49|31.5|E
+BY|Bielorrússia|53.7|28|E
+LT|Lituânia|55.3|23.9|E
+LV|Letónia|56.9|24.9|E
+EE|Estónia|58.7|25.5|E
+MT|Malta|35.9|14.4|E
+CY|Chipre|35|33|E
+AD|Andorra|42.5|1.5|E
+MC|Mónaco|43.74|7.42|E
+LI|Listenstaine|47.1|9.55|E
+SM|São Marinho|43.9|12.45|E
+VA|Vaticano|41.9|12.45|E
+RU|Rússia|58|60|E
+TR|Turquia|39|35|A
+CN|China|35|103|A
+JP|Japão|36.5|138|A
+KR|Coreia do Sul|36.5|127.8|A
+KP|Coreia do Norte|40.2|127|A
+MN|Mongólia|47|103|A
+IN|Índia|22.5|79|A
+PK|Paquistão|30|70|A
+BD|Bangladeche|23.8|90.3|A
+LK|Sri Lanca|7.8|80.7|A
+NP|Nepal|28.3|84|A
+BT|Butão|27.5|90.4|A
+MV|Maldivas|3.2|73.2|A
+AF|Afeganistão|33.8|66|A
+IR|Irão|32.5|54|A
+IQ|Iraque|33|43.7|A
+SY|Síria|35|38.5|A
+LB|Líbano|33.9|35.9|A
+IL|Israel|31.4|34.9|A
+PS|Palestina|31.9|35.2|A
+JO|Jordânia|31.2|36.5|A
+SA|Arábia Saudita|24|45|A
+YE|Iémen|15.6|48|A
+OM|Omã|21|57|A
+AE|Emirados Árabes Unidos|24.2|54.3|A
+QA|Catar|25.3|51.2|A
+BH|Barém|26|50.55|A
+KW|Kuwait|29.3|47.6|A
+GE|Geórgia|42.2|43.5|A
+AM|Arménia|40.2|45|A
+AZ|Azerbaijão|40.3|47.7|A
+KZ|Cazaquistão|48|67|A
+UZ|Uzbequistão|41.4|64.6|A
+TM|Turquemenistão|39|59.5|A
+KG|Quirguistão|41.5|74.6|A
+TJ|Tajiquistão|38.9|71|A
+TH|Tailândia|15.2|101|A
+VN|Vietname|16|106|A
+LA|Laos|18.5|103.8|A
+KH|Camboja|12.7|104.9|A
+MM|Mianmar|21|96|A
+MY|Malásia|3.9|102|A
+SG|Singapura|1.35|103.8|A
+ID|Indonésia|-2|118|A
+PH|Filipinas|12.5|122|A
+BN|Brunei|4.5|114.7|A
+TL|Timor-Leste|-8.8|125.9|A
+TW|Taiwan|23.7|121|A
+HK|Hong Kong|22.3|114.2|A
+MO|Macau|22.2|113.55|A
+MA|Marrocos|31.8|-6.5|F
+DZ|Argélia|28|2.6|F
+TN|Tunísia|34|9.5|F
+LY|Líbia|27|17|F
+EG|Egito|26.5|29.8|F
+SD|Sudão|15.5|30|F
+SS|Sudão do Sul|7.3|30.5|F
+ET|Etiópia|9|39.5|F
+ER|Eritreia|15.3|38.9|F
+DJ|Djibuti|11.8|42.6|F
+SO|Somália|5.5|46|F
+KE|Quénia|0.2|37.9|F
+UG|Uganda|1.4|32.4|F
+TZ|Tanzânia|-6.3|34.8|F
+RW|Ruanda|-2|29.9|F
+BI|Burúndi|-3.4|29.9|F
+CD|República Democrática do Congo|-2.9|23.6|F
+CG|República do Congo|-0.7|15|F
+GA|Gabão|-0.7|11.8|F
+GQ|Guiné Equatorial|1.6|10.5|F
+CM|Camarões|5.7|12.7|F
+NG|Nigéria|9.6|8.1|F
+NE|Níger|17.4|9.4|F
+TD|Chade|15.4|18.7|F
+ML|Mali|17.3|-3.5|F
+MR|Mauritânia|20|-10.5|F
+SN|Senegal|14.5|-14.5|F
+GM|Gâmbia|13.45|-15.4|F
+GW|Guiné-Bissau|12|-15|F
+GN|Guiné|10.9|-10.9|F
+SL|Serra Leoa|8.5|-11.8|F
+LR|Libéria|6.5|-9.4|F
+CI|Costa do Marfim|7.6|-5.5|F
+GH|Gana|7.9|-1|F
+TG|Togo|8.6|1.2|F
+BJ|Benim|9.3|2.3|F
+BF|Burquina Faso|12.3|-1.6|F
+CF|República Centro-Africana|6.6|20.5|F
+AO|Angola|-12.3|17.5|F
+ZM|Zâmbia|-13.5|27.8|F
+ZW|Zimbabué|-19|29.9|F
+MW|Maláui|-13.3|34.3|F
+MZ|Moçambique|-18.3|35|F
+MG|Madagáscar|-19.4|46.7|F
+MU|Maurícia|-20.3|57.6|F
+SC|Seicheles|-4.7|55.5|F
+KM|Comores|-11.9|43.4|F
+NA|Namíbia|-22.1|17.2|F
+BW|Botsuana|-22.3|24.7|F
+ZA|África do Sul|-29|24|F
+SZ|Essuatíni|-26.5|31.5|F
+LS|Lesoto|-29.6|28.2|F
+CV|Cabo Verde|15.1|-23.6|F
+ST|São Tomé e Príncipe|0.2|6.6|F
+US|Estados Unidos|39.8|-98.6|N
+CA|Canadá|58|-98|N
+MX|México|23.6|-102.5|N
+GT|Guatemala|15.7|-90.3|N
+BZ|Belize|17.2|-88.7|N
+HN|Honduras|14.8|-86.6|N
+SV|El Salvador|13.7|-88.9|N
+NI|Nicarágua|12.9|-85.1|N
+CR|Costa Rica|9.9|-84.2|N
+PA|Panamá|8.5|-80|N
+CU|Cuba|21.7|-79|N
+JM|Jamaica|18.1|-77.3|N
+HT|Haiti|19|-72.7|N
+DO|República Dominicana|18.9|-70.5|N
+BS|Baamas|24.2|-76|N
+PR|Porto Rico|18.2|-66.5|N
+TT|Trindade e Tobago|10.5|-61.3|N
+BB|Barbados|13.2|-59.5|N
+LC|Santa Lúcia|13.9|-61|N
+GD|Granada|12.1|-61.7|N
+AG|Antígua e Barbuda|17.1|-61.8|N
+AW|Aruba|12.5|-70|N
+CW|Curaçau|12.2|-69|N
+GL|Gronelândia|72|-40|N
+BR|Brasil|-10|-52|S
+AR|Argentina|-35|-65|S
+CL|Chile|-33|-71|S
+UY|Uruguai|-32.8|-56|S
+PY|Paraguai|-23.4|-58.4|S
+BO|Bolívia|-16.7|-64.7|S
+PE|Peru|-9.2|-75|S
+EC|Equador|-1.4|-78.4|S
+CO|Colômbia|4.6|-73|S
+VE|Venezuela|7|-66|S
+GY|Guiana|4.9|-58.9|S
+SR|Suriname|4|-56|S
+AU|Austrália|-25|134|O
+NZ|Nova Zelândia|-41.5|173|O
+PG|Papua-Nova Guiné|-6.3|145|O
+FJ|Fiji|-17.7|178|O
+WS|Samoa|-13.6|-172.4|O
+TO|Tonga|-21.2|-175.2|O
+VU|Vanuatu|-16|167|O
+SB|Ilhas Salomão|-9.6|160|O
+PF|Polinésia Francesa|-17.6|-149.4|O
+NC|Nova Caledónia|-21.3|165.5|O
+PW|Palau|7.5|134.6|O
+GU|Guam|13.4|144.8|O`;
+
+const CONTINENTS = { E: 'Europa', A: 'Ásia', F: 'África', N: 'América do Norte', S: 'América do Sul', O: 'Oceânia' };
+/* Apelidos comuns (já sem acentos, minúsculas, sem espaços ou pontuação) */
+const COUNTRY_ALIASES = {
+  eua: 'US', usa: 'US', estadosunidosdaamerica: 'US', americas: 'US', havai: 'US', hawaii: 'US', alasca: 'US',
+  uk: 'GB', inglaterra: 'GB', escocia: 'GB', paisdegales: 'GB', gales: 'GB', grabretanha: 'GB', irlandadonorte: 'GB', londres: 'GB',
+  holanda: 'NL', paisesbaixos: 'NL', republicacheca: 'CZ', checa: 'CZ', coreia: 'KR', emirados: 'AE', dubai: 'AE', bali: 'ID',
+  acores: 'PT', madeira: 'PT', canarias: 'ES', baleares: 'ES', maiorca: 'ES', ibiza: 'ES', sicilia: 'IT', sardenha: 'IT', corsega: 'FR',
+  macedonia: 'MK', suica: 'CH', servia: 'RS', bosnia: 'BA', rdcongo: 'CD', congo: 'CG', birmania: 'MM', myanmar: 'MM', suazilandia: 'SZ',
+  tailandia: 'TH', cingapura: 'SG', srilanka: 'LK', bangladesh: 'BD', zimbabwe: 'ZW', malawi: 'MW', turquia: 'TR', turkiye: 'TR',
+  costadomarfim: 'CI', marfim: 'CI', capeverde: 'CV', saotome: 'ST', japao: 'JP', coreiadosul: 'KR', coreiadonorte: 'KP', vietnam: 'VN',
+  italia: 'IT', alemanha: 'DE', franca: 'FR', espanha: 'ES', grecia: 'GR', russia: 'RU', ucrania: 'UA', croacia: 'HR', polonia: 'PL',
+  hungria: 'HU', romenia: 'RO', bulgaria: 'BG', finlandia: 'FI', suecia: 'SE', dinamarca: 'DK', islandia: 'IS', belgica: 'BE', austria: 'AT',
+  luxemburgo: 'LU', mexico: 'MX', canada: 'CA', peru: 'PE', colombia: 'CO', equador: 'EC', bolivia: 'BO', egipto: 'EG', egito: 'EG',
+  etiopia: 'ET', tanzania: 'TZ', quenia: 'KE', africadosul: 'ZA', mocambique: 'MZ', madagascar: 'MG', mauricia: 'MU', indonesia: 'ID',
+  filipinas: 'PH', malasia: 'MY', camboja: 'KH', israel: 'IL', jordania: 'JO', libano: 'LB', iraque: 'IQ', ira: 'IR', arabia: 'SA',
+  australia: 'AU', novazelandia: 'NZ', paquistao: 'PK', butao: 'BT', tunisia: 'TN', argelia: 'DZ', libia: 'LY', nigeria: 'NG',
+  uruguai: 'UY', paraguai: 'PY', panama: 'PA', nicaragua: 'NI', jamaica: 'JM', gronelandia: 'GL', singapura: 'SG', georgia: 'GE',
+  armenia: 'AM', azerbaijao: 'AZ', cazaquistao: 'KZ', uzbequistao: 'UZ', mongolia: 'MN', maldivas: 'MV', seicheles: 'SC', baamas: 'BS'
+};
+
+/* ===== lib.js: funções puras (projeção, datas, EXIF, países, agrupamento) ===== */
+const DEG = Math.PI / 180;
+const MAP_W = 1000, LAT_TOP = 84, LAT_BOT = -58;
+
+/* Projeção Natural Earth 1 */
+function neX(lat, lon) {
+  const p = lat * DEG, p2 = p * p, p4 = p2 * p2;
+  return lon * DEG * (0.8707 - 0.131979 * p2 + p4 * (-0.013791 + p4 * (0.003971 * p2 - 0.001529 * p4)));
+}
+function neY(lat) {
+  const p = lat * DEG, p2 = p * p, p4 = p2 * p2;
+  return p * (1.007226 + p2 * (0.015085 + p4 * (-0.044475 + 0.028874 * p2 - 0.005916 * p4)));
+}
+const MAP_K = MAP_W / (2 * neX(0, 180));
+const MAP_YTOP = MAP_K * neY(LAT_TOP);
+const MAP_H = MAP_K * (neY(LAT_TOP) - neY(LAT_BOT));
+function project(lon, lat) {
+  return [MAP_W / 2 + MAP_K * neX(lat, lon), MAP_YTOP - MAP_K * neY(lat)];
+}
+function unproject(px, py) {
+  const y = (MAP_YTOP - py) / MAP_K, x = (px - MAP_W / 2) / MAP_K;
+  let p = y;
+  for (let i = 0; i < 40; i++) {
+    const p2 = p * p, p6 = p2 * p2 * p2, p8 = p6 * p2, p10 = p8 * p2, p11 = p10 * p;
+    const f = 1.007226 * p + 0.015085 * p2 * p - 0.044475 * p6 * p + 0.028874 * p8 * p - 0.005916 * p11 - y;
+    const d = 1.007226 + 0.045255 * p2 - 0.311325 * p6 + 0.259866 * p8 - 0.065076 * p10;
+    const step = f / d; p -= step;
+    if (Math.abs(step) < 1e-12) break;
+  }
+  const p2 = p * p, p4 = p2 * p2;
+  const fx = 0.8707 - 0.131979 * p2 + p4 * (-0.013791 + p4 * (0.003971 * p2 - 0.001529 * p4));
+  const lat = Math.max(-90, Math.min(90, p / DEG));
+  const lon = Math.max(-180, Math.min(180, x / fx / DEG));
+  return [lon, lat];
+}
+function haversineKm(la1, lo1, la2, lo2) {
+  const dLa = (la2 - la1) * DEG, dLo = (lo2 - lo1) * DEG;
+  const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * DEG) * Math.cos(la2 * DEG) * Math.sin(dLo / 2) ** 2;
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+/* Datas (sempre 'YYYY-MM-DD', sem fuso) */
+const pad2 = n => String(n).padStart(2, '0');
+function parseYmd(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return (dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d) ? dt : null;
+}
+const fmtYmd = dt => `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`;
+function addDays(s, n) { const d = parseYmd(s); d.setUTCDate(d.getUTCDate() + n); return fmtYmd(d); }
+function diffDays(a, b) { return Math.round((parseYmd(b) - parseYmd(a)) / 864e5); }
+function localYmd(date) { return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`; }
+
+/* EXIF (JPEG): data e GPS */
+function parseExif(buf) {
+  try {
+    const v = new DataView(buf);
+    if (v.byteLength < 12 || v.getUint16(0) !== 0xFFD8) return null;
+    let o = 2;
+    while (o + 4 < v.byteLength) {
+      const mk = v.getUint16(o);
+      if ((mk & 0xFF00) !== 0xFF00 || mk === 0xFFDA) break;
+      const len = v.getUint16(o + 2);
+      if (mk === 0xFFE1 && v.getUint32(o + 4) === 0x45786966 && v.getUint16(o + 8) === 0) {
+        return readTiff(v, o + 10, Math.min(o + 2 + len, v.byteLength));
+      }
+      o += 2 + len;
+    }
+  } catch (e) { /* sem EXIF legível */ }
+  return null;
+}
+function readTiff(v, base, end) {
+  const bo = v.getUint16(base);
+  if (bo !== 0x4949 && bo !== 0x4D4D) return null;
+  const le = bo === 0x4949;
+  const u16 = p => v.getUint16(p, le), u32 = p => v.getUint32(p, le);
+  const SZ = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 9: 4, 10: 8 };
+  function ifd(off) {
+    const out = {};
+    if (off < base || off + 2 > end) return out;
+    const n = u16(off);
+    for (let i = 0; i < n; i++) {
+      const e = off + 2 + i * 12;
+      if (e + 12 > end) break;
+      const tag = u16(e), type = u16(e + 2), count = u32(e + 4);
+      const size = (SZ[type] || 1) * count;
+      const at = size > 4 ? base + u32(e + 8) : e + 8;
+      if (at + size > end) continue;
+      out[tag] = { type, count, at };
+    }
+    return out;
+  }
+  const ascii = t => { if (!t) return ''; let s = ''; for (let i = 0; i < t.count; i++) { const c = v.getUint8(t.at + i); if (!c) break; s += String.fromCharCode(c); } return s; };
+  const rats = t => { const r = []; if (!t) return r; for (let i = 0; i < t.count; i++) { const d = u32(t.at + i * 8 + 4); r.push(d ? u32(t.at + i * 8) / d : 0); } return r; };
+  const i0 = ifd(base + u32(base + 4));
+  const exif = i0[0x8769] ? ifd(base + u32(i0[0x8769].at)) : {};
+  const gps = i0[0x8825] ? ifd(base + u32(i0[0x8825].at)) : {};
+  const res = { date: '', time: '', lat: null, lng: null };
+  const raw = ascii(exif[0x9003]) || ascii(exif[0x9004]) || ascii(i0[0x0132]);
+  const m = raw.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (m && m[1] !== '0000') { res.date = `${m[1]}-${m[2]}-${m[3]}`; res.time = `${m[4]}:${m[5]}:${m[6]}`; if (!parseYmd(res.date)) { res.date = ''; res.time = ''; } }
+  const la = rats(gps[2]), lo = rats(gps[4]);
+  if (la.length === 3 && lo.length === 3) {
+    let lat = la[0] + la[1] / 60 + la[2] / 3600, lng = lo[0] + lo[1] / 60 + lo[2] / 3600;
+    if (ascii(gps[1]).toUpperCase().startsWith('S')) lat = -lat;
+    if (ascii(gps[3]).toUpperCase().startsWith('W')) lng = -lng;
+    if (isFinite(lat) && isFinite(lng) && (lat !== 0 || lng !== 0) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) { res.lat = lat; res.lng = lng; }
+  }
+  return res;
+}
+
+/* Países */
+const COUNTRIES = COUNTRY_ROWS.split('\n').map(r => {
+  const [code, name, lat, lng, c] = r.split('|');
+  return { code, name, lat: +lat, lng: +lng, cont: c };
+});
+const COUNTRY_BY_CODE = Object.fromEntries(COUNTRIES.map(c => [c.code, c]));
+const normKey = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');
+const COUNTRY_BY_KEY = {};
+for (const c of COUNTRIES) COUNTRY_BY_KEY[normKey(c.name)] = c.code;
+for (const [k, code] of Object.entries(COUNTRY_ALIASES)) if (!COUNTRY_BY_KEY[k]) COUNTRY_BY_KEY[k] = code;
+function findCountry(text) {
+  const k = normKey(text);
+  if (!k) return null;
+  const code = COUNTRY_BY_KEY[k];
+  return code ? COUNTRY_BY_CODE[code] : null;
+}
+const MICRO = new Set(['VA', 'SM', 'MC', 'LI', 'AD']);
+function nearestCountry(lat, lng) {
+  let best = null, bd = Infinity;
+  for (const c of COUNTRIES) {
+    if (MICRO.has(c.code)) continue; const d = haversineKm(lat, lng, c.lat, c.lng); if (d < bd) { bd = d; best = c; } }
+  return best;
+}
+function median(a) { const s = a.slice().sort((x, y) => x - y); const n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null; }
+
+/* Localização de uma viagem: coordenadas guardadas, GPS das fotos ou centro do país */
+function tripPoint(t) {
+  if (Number.isFinite(t.lat) && Number.isFinite(t.lng)) return { lat: t.lat, lng: t.lng, src: 'manual' };
+  const g = (t.photos || []).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  if (g.length) return { lat: median(g.map(p => p.lat)), lng: median(g.map(p => p.lng)), src: 'fotos' };
+  const c = findCountry(t.country);
+  return c ? { lat: c.lat, lng: c.lng, src: 'pais' } : null;
+}
+function tripDays(t) {
+  const set = new Set();
+  const a = parseYmd(t.start), b = parseYmd(t.end || t.start);
+  if (a && b && b >= a && (b - a) / 864e5 <= 120) for (let d = new Date(a); d <= b; d.setUTCDate(d.getUTCDate() + 1)) set.add(fmtYmd(d));
+  for (const p of (t.photos || [])) if (p.date && parseYmd(p.date)) set.add(p.date);
+  for (const k of Object.keys(t.days || {})) if ((t.days[k] || '').trim() && parseYmd(k)) set.add(k);
+  return [...set].sort();
+}
+function tripDayCount(t) {
+  const a = parseYmd(t.start), b = parseYmd(t.end);
+  if (!a) return 0;
+  if (!b || b < a) return 1;
+  return Math.round((b - a) / 864e5) + 1;
+}
+
+/* Agrupa fotos em viagens: nova viagem quando há mais de gapDays dias entre fotos seguidas */
+function groupByDate(items, gapDays) {
+  const s = items.slice().sort((a, b) => (a.date + ' ' + (a.time || '')).localeCompare(b.date + ' ' + (b.time || '')));
+  const groups = [];
+  for (const it of s) {
+    const g = groups[groups.length - 1];
+    if (g && diffDays(g.end, it.date) <= gapDays) { g.items.push(it); if (it.date > g.end) g.end = it.date; }
+    else groups.push({ start: it.date, end: it.date, items: [it] });
+  }
+  return groups;
+}
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const slug = s => String(s || 'viagem').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'viagem';
+const chunk = (a, n) => { const r = []; for (let i = 0; i < a.length; i += n) r.push(a.slice(i, i + n)); return r; };
+function hueOf(s) { let n = 0; for (const c of String(s || 'x')) n = (n * 31 + c.charCodeAt(0)) % 360; return n; }
+
+/* Polígonos para pontos de SVG */
+function polyPath(str) {
+  const pts = str.split(' ').map(p => { const [lo, la] = p.split(',').map(Number); return project(lo, la); });
+  return 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
+}
+
+const BOOK_CSS = "\n.pg { container-type: inline-size; position: relative; width: 100%; aspect-ratio: 297 / 210; background: #fff; color: #1a2321; overflow: hidden; font-family: \"Source Sans 3\", system-ui, \"Segoe UI\", sans-serif; font-size: 1.5cqw; line-height: 1.45; box-shadow: 0 8px 40px rgb(0 0 0 / 0.35); text-align: left; }\n.pg * { box-sizing: border-box; }\n.pg .mn { font-family: \"DM Mono\", ui-monospace, Menlo, monospace; font-size: 1.15cqw; letter-spacing: 0.04em; color: #5b6965; }\n.pg h2 { font-family: \"Bricolage Grotesque\", \"Avenir Next\", system-ui, sans-serif; font-weight: 700; margin: 0; letter-spacing: -0.02em; line-height: 1.05; }\n.pg.cover { color: #fff; }\n.pg.cover img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }\n.pg.cover .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(0 0 0 / 0.05) 35%, rgb(0 0 0 / 0.68)); }\n.pg.cover .t { position: absolute; left: 5cqw; right: 5cqw; bottom: 5cqw; display: grid; gap: 1cqw; }\n.pg.cover h2 { font-size: 8cqw; text-wrap: balance; }\n.pg.cover .mn { color: rgb(255 255 255 / 0.9); font-size: 1.3cqw; }\n.pg.cover .sub { font-size: 2.2cqw; margin: 0; opacity: 0.95; }\n.pg.mp { display: grid; grid-template-columns: 30% 1fr; gap: 3cqw; padding: 4.5cqw; align-items: center; }\n.pg.mp h2 { font-size: 3.6cqw; margin-bottom: 1.2cqw; }\n.pg.mp .mapw { border: 1px solid #d5dad5; border-radius: 0.5cqw; overflow: hidden; align-self: stretch; display: grid; }\n.pg.mp .mapw svg { width: 100%; height: 100%; display: block; }\n.pg.day { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 1.6cqw; padding: 3.2cqw; }\n.pg.day .hd { display: flex; align-items: baseline; gap: 1.4cqw; }\n.pg.day .hd b { font-family: \"Bricolage Grotesque\", system-ui, sans-serif; font-size: 2.2cqw; }\n.pg.day .bd { display: grid; grid-template-columns: 1fr; gap: 2.4cqw; min-height: 0; }\n.pg.day.has-txt .bd { grid-template-columns: 34% minmax(0, 1fr); }\n.pg.day .tx { white-space: pre-wrap; overflow: hidden; font-size: 1.75cqw; line-height: 1.5; overflow-wrap: anywhere; }\n.pg.day.only-txt .bd { grid-template-columns: minmax(0, 1fr); }\n.pg.day.only-txt .tx { font-size: 2.3cqw; max-width: 70%; }\n.pg .ph { display: grid; gap: 1cqw; min-height: 0; min-width: 0; }\n.pg .ph img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 0; min-width: 0; border-radius: 0.3cqw; }\n.pg .ph.l2h { grid-template-columns: 1fr 1fr; }\n.pg .ph.l2v { grid-template-rows: 1fr 1fr; }\n.pg .ph.l3 { grid-template-columns: 1.5fr 1fr; grid-template-rows: 1fr 1fr; }\n.pg .ph.l3 img:first-child { grid-row: 1 / 3; }\n.pg .ph.l4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }\n.pg.end { display: grid; place-items: center; text-align: center; background: #14201d; color: #eef2f0; }\n.pg.end .inner { display: grid; gap: 2cqw; justify-items: center; }\n.pg.end h2 { font-size: 5cqw; }\n.pg.end .nums { display: flex; gap: 5cqw; }\n.pg.end .nums b { display: block; font-family: \"Bricolage Grotesque\", system-ui, sans-serif; font-size: 5.5cqw; line-height: 1; }\n.pg.end .nums span { font-family: \"DM Mono\", ui-monospace, monospace; font-size: 1.2cqw; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }\n";
+/* ===== app.js: interface ===== */
+const $ = (s, r = document) => r.querySelector(s);
+const SVGNS = 'http://www.w3.org/2000/svg';
+const pl = (n, s, p) => n + ' ' + (n === 1 ? s : p);
+const blobUrl = id => '/_blob/' + encodeURIComponent(id);
+const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k === 'style') el.style.cssText = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+function svgEl(tag, attrs, ...kids) {
+  const el = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) if (v != null) el.setAttribute(k, v);
+  for (const kid of kids.flat()) if (kid) el.append(kid);
+  return el;
+}
+
+/* ---------- datas ---------- */
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const MONTHS_LONG = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const dfmt = new Intl.DateTimeFormat('pt-PT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const dfmtLong = new Intl.DateTimeFormat('pt-PT', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' });
+function dateText(t) {
+  const a = parseYmd(t.start), b = parseYmd(t.end);
+  if (a && b && t.end !== t.start) { try { return dfmt.formatRange(a, b); } catch (e) { return dfmt.format(a) + ' – ' + dfmt.format(b); } }
+  return a ? dfmt.format(a) : '';
+}
+const yearOf = t => (t.start && t.start.slice(0, 4)) || 'Sem data';
+const monthKey = s => (s && s.length >= 7) ? s.slice(0, 7) : '';
+const monthLabel = ym => ym ? `${MONTHS_LONG[+ym.slice(5, 7) - 1]} de ${ym.slice(0, 4)}` : 'Sem data';
+
+/* ---------- estado ---------- */
+let db = null, assets = null, downloads = null, canWrite = false;
+let trips = [], loaded = false, loadError = false, slow = false, noDb = false;
+let view = { name: 'home', id: null };
+const ui = { tab: 'mapa', q: '', tag: '', fav: false, layout: 'grelha', year: new Date().getFullYear(), pYear: '', pFav: false, route: true, sel: null, discreet: false };
+const mapState = { x: 0, y: 0, w: MAP_W };
+let lastDatas = [], lastIds = [];
+let lb = null, modal = null, bk = null, lastFocus = null;
+let statusTimer = null, uploading = false;
+const queues = new Map();
+const tripById = id => trips.find(t => t.id === id);
+const coverId = t => { const ph = t.photos || []; return (t.cover && ph.some(p => p.id === t.cover)) ? t.cover : (ph[0] && ph[0].id) || null; };
+const placeText = t => [t.place, t.country].filter(Boolean).join(', ');
+function enqueue(key, fn) {
+  const prev = queues.get(key) || Promise.resolve();
+  const next = prev.catch(() => {}).then(fn);
+  queues.set(key, next);
+  return next;
+}
+function setStatus(text, ms) {
+  const el = $('#status');
+  clearTimeout(statusTimer);
+  if (!text) { el.hidden = true; return; }
+  el.textContent = text; el.hidden = false;
+  if (ms) statusTimer = setTimeout(() => { el.hidden = true; }, ms);
+}
+function lockScroll() { document.body.style.overflow = 'hidden'; }
+function unlockScroll() { if (!modal && !lb && !bk) document.body.style.overflow = ''; }
+
+/* ---------- mapa ---------- */
+const GRAT_D = (() => {
+  let d = '';
+  for (let lo = -180; lo <= 180; lo += 30) { const a = project(lo, LAT_TOP), b = project(lo, LAT_BOT); d += `M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`; }
+  for (let la = -30; la <= 60; la += 30) { const a = project(-180, la), b = project(180, la); d += `M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`; }
+  return d;
+})();
+const LAND_D = LAND.map(polyPath).join('');
+const SEA_D = SEAS.map(polyPath).join('');
+const BOOK_PAL = { sea: '#E1E9E7', land: '#FFFFFF', coast: '#A5B5B1', grat: '#CFDAD7', pin: '#C8341B', dot: '#1F3F9E', route: '#1F3F9E' };
+
+function fitView(points, minW) {
+  if (!points.length) return { x: 0, y: 0, w: MAP_W };
+  const xs = points.map(p => project(p.lng, p.lat)[0]), ys = points.map(p => project(p.lng, p.lat)[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const w = Math.min(MAP_W, Math.max(minW || 220, (x1 - x0) * 1.5, (y1 - y0) * 1.5 * MAP_W / MAP_H));
+  const hh = w * MAP_H / MAP_W;
+  return { x: Math.max(0, Math.min(MAP_W - w, (x0 + x1) / 2 - w / 2)), y: Math.max(0, Math.min(MAP_H - hh, (y0 + y1) / 2 - hh / 2)), w };
+}
+
+function createMap(o) {
+  const pal = o.palette || null;
+  const col = (k, v) => pal ? pal[k] : `var(--${v})`;
+  const svg = svgEl('svg', { viewBox: `0 0 ${MAP_W} ${MAP_H}`, role: 'img', 'aria-label': o.label || 'Mapa-múndi', xmlns: SVGNS });
+  svg.append(
+    svgEl('rect', { x: 0, y: 0, width: MAP_W, height: MAP_H, fill: col('sea', 'sea') }),
+    svgEl('path', { d: GRAT_D, fill: 'none', stroke: col('grat', 'grat'), 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }),
+    svgEl('path', { d: LAND_D, fill: col('land', 'land'), stroke: col('coast', 'coast'), 'stroke-width': 1, 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }),
+    svgEl('path', { d: SEA_D, fill: col('sea', 'sea'), stroke: col('coast', 'coast'), 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }));
+  const gRoute = svgEl('g'), gDots = svgEl('g'), gPins = svgEl('g'), gPick = svgEl('g');
+  svg.append(gRoute, gDots, gPins, gPick);
+
+  const pins = o.pins || [];
+  if (o.route && pins.length > 1) {
+    const d = pins.map((p, i) => { const q = project(p.lng, p.lat); return (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join('');
+    gRoute.append(svgEl('path', { d, fill: 'none', stroke: col('route', 'blue'), 'stroke-width': 1.6, 'stroke-dasharray': '6 5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.85, 'vector-effect': 'non-scaling-stroke' }));
+  }
+  const scaled = [];
+  for (const d of (o.dots || [])) {
+    const q = project(d.lng, d.lat);
+    const g = svgEl('g', { transform: `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)})` });
+    g.append(svgEl('circle', { r: 3.5, fill: col('dot', 'blue'), stroke: pal ? '#fff' : 'var(--surface)', 'stroke-width': 1 }));
+    gDots.append(g); scaled.push([g, q]);
+  }
+  for (const p of pins) {
+    const q = project(p.lng, p.lat);
+    const g = svgEl('g', { class: 'pin', transform: `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)})`, 'data-id': p.id });
+    if (!o.static) { g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button'); g.setAttribute('aria-label', p.label || 'Viagem'); }
+    if (p.label && !o.static) g.append(svgEl('title', {}, document.createTextNode(p.label)));
+    g.append(svgEl('circle', { class: 'ring', r: p.sel ? 13 : 10, fill: 'none', stroke: p.sel ? col('route', 'blue') : 'none', 'stroke-width': 2.5 }));
+    g.append(svgEl('circle', { r: 7, fill: col('pin', 'accent'), stroke: pal ? '#fff' : 'var(--surface)', 'stroke-width': 2.5 }));
+    if (!o.static) {
+      g.addEventListener('pointerdown', e => e.stopPropagation());
+      g.addEventListener('click', e => { e.stopPropagation(); o.onPin && o.onPin(p.id); });
+      g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); o.onPin && o.onPin(p.id); } });
+    }
+    gPins.append(g); scaled.push([g, q]);
+  }
+
+  let { x: vx, y: vy, w: vw } = o.view || { x: 0, y: 0, w: MAP_W };
+  const box = h('div', { class: 'mapbox' + (o.onPick ? ' pick' : '') });
+  const vh = () => vw * MAP_H / MAP_W;
+  const clampView = () => { vw = Math.max(50, Math.min(MAP_W, vw)); vx = Math.max(0, Math.min(MAP_W - vw, vx)); vy = Math.max(0, Math.min(MAP_H - vh(), vy)); };
+  const widthPx = () => svg.getBoundingClientRect().width || 700;
+  function apply(silent) {
+    clampView();
+    svg.setAttribute('viewBox', `${vx.toFixed(2)} ${vy.toFixed(2)} ${vw.toFixed(2)} ${vh().toFixed(2)}`);
+    const k = (o.static ? vw / 900 : vw / widthPx());
+    for (const [g, q] of scaled) g.setAttribute('transform', `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)}) scale(${k.toFixed(4)})`);
+    box.classList.toggle('zoomed', vw < MAP_W - 1);
+    if (!silent && o.onView) o.onView({ x: vx, y: vy, w: vw });
+  }
+  function drawPick(pk) {
+    gPick.replaceChildren();
+    if (!pk) return;
+    const q = project(pk.lng, pk.lat);
+    const g = svgEl('g', { transform: `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)})`, 'data-pick': '1' });
+    g.append(svgEl('circle', { r: 10, fill: 'none', stroke: 'var(--blue)', 'stroke-width': 2.5 }), svgEl('circle', { r: 4, fill: 'var(--accent)' }));
+    gPick.append(g); scaled.push([g, q]); apply(true);
+  }
+  box.append(svg);
+  if (!o.static) {
+    const zoom = (f, cx, cy) => {
+      const r = svg.getBoundingClientRect();
+      const fx = cx == null ? 0.5 : (cx - r.left) / r.width, fy = cy == null ? 0.5 : (cy - r.top) / r.height;
+      const px = vx + fx * vw, py = vy + fy * vh();
+      vw = Math.max(50, Math.min(MAP_W, vw * f)); vx = px - fx * vw; vy = py - fy * vh(); apply();
+    };
+    box.append(h('div', { class: 'mapctl' },
+      h('button', { type: 'button', 'aria-label': 'Aproximar', onclick: () => zoom(0.6) }, '+'),
+      h('button', { type: 'button', 'aria-label': 'Afastar', onclick: () => zoom(1.67) }, '−'),
+      h('button', { type: 'button', 'aria-label': 'Ver o mundo todo', onclick: () => { vx = 0; vy = 0; vw = MAP_W; apply(); } }, '⟲')));
+    let drag = null;
+    svg.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && e.button !== 0) return; drag = { id: e.pointerId, x: e.clientX, y: e.clientY, vx, vy, moved: false }; });
+    svg.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+      drag.moved = true;
+      if (vw >= MAP_W - 1) return;
+      try { svg.setPointerCapture(e.pointerId); } catch (er) { /* ignora */ }
+      box.classList.add('dragging');
+      const k = vw / svg.getBoundingClientRect().width;
+      vx = drag.vx - dx * k; vy = drag.vy - dy * k; apply();
+    });
+    const end = e => {
+      if (!drag || (e && e.pointerId !== drag.id)) return;
+      const was = drag; drag = null; box.classList.remove('dragging');
+      if (e && e.type === 'pointerup' && !was.moved && o.onPick) {
+        const r = svg.getBoundingClientRect();
+        const [lo, la] = unproject(vx + (e.clientX - r.left) / r.width * vw, vy + (e.clientY - r.top) / r.height * vh());
+        o.onPick(la, lo);
+      }
+    };
+    svg.addEventListener('pointerup', end);
+    svg.addEventListener('pointercancel', () => { drag = null; box.classList.remove('dragging'); });
+    svg.addEventListener('wheel', e => { if (!(e.ctrlKey || e.metaKey)) return; e.preventDefault(); zoom(e.deltaY < 0 ? 0.8 : 1.25, e.clientX, e.clientY); }, { passive: false });
+    if (window.ResizeObserver) new ResizeObserver(() => apply(true)).observe(box);
+  }
+  apply(true);
+  drawPick(o.pick);
+  return { el: box, setPick: drawPick, svg };
+}
+
+function mapSVGString(t) {
+  const pt = tripPoint(t);
+  if (!pt) return '';
+  const dots = (t.photos || []).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  const m = createMap({ static: true, palette: BOOK_PAL, pins: [{ id: t.id, lat: pt.lat, lng: pt.lng }], dots, view: fitView([pt].concat(dots), 300) });
+  return m.svg.outerHTML;
+}
+
+/* ---------- estatísticas ---------- */
+function statsLine() {
+  const countries = new Set(), conts = new Set();
+  for (const t of trips) { const c = findCountry(t.country); if (c) { countries.add(c.code); conts.add(c.cont); } }
+  const photos = trips.reduce((n, t) => n + (t.photos || []).length, 0);
+  const days = trips.reduce((n, t) => n + tripDayCount(t), 0);
+  const parts = [pl(trips.length, 'viagem', 'viagens')];
+  if (countries.size) parts.push(pl(countries.size, 'país', 'países'));
+  if (conts.size) parts.push(pl(conts.size, 'continente', 'continentes'));
+  parts.push(pl(photos, 'foto', 'fotos'));
+  if (days) parts.push(pl(days, 'dia fora', 'dias fora'));
+  return parts.join('  ·  ');
+}
+
+/* ---------- peças de interface ---------- */
+function placeholder(t) {
+  const a = hueOf(t.title), b = (a + 38) % 360;
+  return h('div', { class: 'cover ph', style: `background:linear-gradient(145deg,hsl(${a} 38% 34%),hsl(${b} 42% 26%))` },
+    h('span', {}, placeText(t) || 'Sem fotos'));
+}
+function coverEl(t) {
+  const cid = coverId(t);
+  const c = cid ? h('div', { class: 'cover' }, h('img', { src: blobUrl(cid), alt: '', loading: 'lazy', decoding: 'async' })) : placeholder(t);
+  if (t.fav) c.append(h('span', { class: 'heart', 'aria-label': 'Favorita' }, '♥'));
+  return c;
+}
+function card(t) {
+  const n = (t.photos || []).length;
+  const meta = [dateText(t), n ? pl(n, 'foto', 'fotos') : ''].filter(Boolean).join('  ·  ');
+  return h('button', { class: 'card', type: 'button', 'aria-label': 'Abrir ' + t.title, onclick: () => go(t.id) },
+    coverEl(t),
+    h('div', {},
+      h('h3', {}, t.title),
+      placeText(t) ? h('p', { class: 'place' }, placeText(t)) : null,
+      meta ? h('p', { class: 'mono' }, meta) : null,
+      (t.tags || []).length ? h('div', { class: 'tagline' }, t.tags.map(x => h('span', {}, x))) : null));
+}
+function newTripBtn() {
+  return canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openTripForm(null) }, 'Nova viagem') : null;
+}
+function importBtn() {
+  if (!canWrite || !assets) return null;
+  return h('button', { class: 'btn', type: 'button', onclick: () => pickImport() }, 'Importar fotos');
+}
+
+/* ---------- início ---------- */
+const TABS = [['mapa', 'Mapa'], ['viagens', 'Viagens'], ['ano', 'Ano'], ['fotos', 'Fotos']];
+function renderHome() {
+  const root = h('div');
+  root.append(h('header', { class: 'top' },
+    h('div', {}, h('h1', {}, 'Álbum de viagens'),
+      (loaded && trips.length) ? h('p', { class: 'mono', style: 'margin:0' }, statsLine()) : null),
+    h('div', { class: 'row' }, importBtn(), newTripBtn(),
+      h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': ui.discreet ? 'true' : 'false', title: 'Desfoca fotos e textos para mostrares o ecrã a outras pessoas', onclick: toggleDiscreet }, 'Modo discreto'))));
+  root.append(h('div', { class: 'tabs', role: 'tablist' }, TABS.map(([k, label]) =>
+    h('button', { class: 'tab', type: 'button', role: 'tab', id: 'tab-' + k, 'aria-selected': ui.tab === k ? 'true' : 'false', onclick: () => setTab(k) }, label))));
+
+  if (noDb) root.append(h('div', { class: 'empty' }, h('h2', {}, 'Não foi possível abrir o álbum.'), h('p', {}, 'Para ver e guardar viagens, abre esta página com a tua conta Claude.')));
+  else if (loadError) root.append(h('div', { class: 'empty' }, h('h2', {}, 'Não foi possível carregar as viagens.'), h('p', {}, 'Recarrega a página para tentar de novo.')));
+  else if (!loaded) root.append(h('p', { class: 'mono' }, slow ? 'Sem resposta ainda. Vou continuar a tentar em segundo plano.' : 'A carregar viagens…'));
+  else if (!trips.length) root.append(h('div', { class: 'empty' },
+    h('h2', {}, 'O álbum ainda está vazio.'),
+    h('p', {}, canWrite ? 'Cria a primeira viagem, ou usa "Importar fotos": agrupo as fotos por datas, leio a localização guardada nelas e proponho as viagens.' : 'Ainda não há viagens neste álbum.'),
+    h('div', { class: 'row' }, newTripBtn(), importBtn())));
+  else root.append(ui.tab === 'mapa' ? renderMapTab() : ui.tab === 'viagens' ? renderTripsTab() : ui.tab === 'ano' ? renderYearTab() : renderPhotosTab());
+  return root;
+}
+function setTab(k) { if (location.hash === '#' + k) { ui.tab = k; render(); } else location.hash = k; }
+function toggleDiscreet() {
+  ui.discreet = !ui.discreet;
+  document.body.classList.toggle('discreet', ui.discreet);
+  try { localStorage.setItem('album-discreto', ui.discreet ? '1' : ''); } catch (e) { /* sem armazenamento */ }
+  render();
+}
+
+/* separador Mapa */
+function renderMapTab() {
+  const root = h('div');
+  const located = trips.map(t => ({ t, pt: tripPoint(t) })).filter(x => x.pt).sort((a, b) => (a.t.start || a.t.createdAt || '').localeCompare(b.t.start || b.t.createdAt || ''));
+  const without = trips.filter(t => !tripPoint(t));
+  if (ui.sel && !tripById(ui.sel)) ui.sel = null;
+  root.append(h('div', { class: 'bar' },
+    h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.route ? 'true' : 'false', onclick: () => { ui.route = !ui.route; render(); } }, 'Percurso entre viagens'),
+    h('span', { class: 'mono' }, located.length ? pl(located.length, 'viagem no mapa', 'viagens no mapa') + '. Usa + e − para aproximar.' : 'Ainda nenhuma viagem tem localização.')));
+  const m = createMap({
+    pins: located.map(x => ({ id: x.t.id, lat: x.pt.lat, lng: x.pt.lng, label: x.t.title + (dateText(x.t) ? ' · ' + dateText(x.t) : ''), sel: ui.sel === x.t.id })),
+    route: ui.route, view: mapState, onView: v => Object.assign(mapState, v), label: 'Mapa das viagens',
+    onPin: id => { ui.sel = id; render(); }
+  });
+  root.append(m.el);
+  const note = h('div', { class: 'mapnote' });
+  const sel = ui.sel && tripById(ui.sel);
+  if (sel) note.append(h('div', { class: 'sel' }, coverEl(sel),
+    h('div', {}, h('h3', {}, sel.title),
+      h('p', { class: 'mono' }, [placeText(sel), dateText(sel)].filter(Boolean).join('  ·  ')),
+      h('button', { class: 'btn sm', type: 'button', onclick: () => go(sel.id) }, 'Abrir viagem'))));
+  const countries = new Map();
+  for (const t of trips) { const c = findCountry(t.country); if (c) countries.set(c.code, (countries.get(c.code) || 0) + 1); }
+  if (countries.size) {
+    const byCont = {};
+    for (const code of countries.keys()) { const c = COUNTRY_BY_CODE[code]; (byCont[c.cont] = byCont[c.cont] || []).push(c); }
+    note.append(h('div', {}, h('h2', { class: 'sec' }, 'Países visitados'),
+      h('div', { class: 'chips' }, Object.keys(byCont).flatMap(k => byCont[k].sort((a, b) => a.name.localeCompare(b.name, 'pt')).map(c =>
+        h('span', { class: 'chip static', title: CONTINENTS[k] }, c.name + (countries.get(c.code) > 1 ? ' ×' + countries.get(c.code) : '')))))));
+  }
+  if (without.length) note.append(h('p', { class: 'nolocs' }, pl(without.length, 'viagem sem localização', 'viagens sem localização') + ': ',
+    without.map((t, i) => [i ? ', ' : '', h('button', { type: 'button', onclick: () => go(t.id) }, t.title)]),
+    canWrite ? '. Edita a viagem e indica o país ou marca o sítio no mapa.' : '.'));
+  note.append(h('p', { class: 'mono', style: 'margin:0' }, 'Mapa simplificado. Cada pino usa a localização marcada, o GPS das fotos ou o centro do país.'));
+  root.append(note);
+  return root;
+}
+
+/* "Neste dia" */
+function memories() {
+  const now = new Date(), md = pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()), y = now.getFullYear();
+  const out = [];
+  for (const t of trips) for (const p of (t.photos || [])) if (p.date && p.date.slice(5) === md && +p.date.slice(0, 4) < y) out.push({ t, p, years: y - +p.date.slice(0, 4) });
+  return out;
+}
+
+/* separador Viagens */
+function matchTrip(t, q) {
+  if (!q) return true;
+  const hay = fold([t.title, t.place, t.country, t.note, (t.tags || []).join(' '), Object.values(t.days || {}).join(' '), (t.photos || []).map(p => p.caption).join(' ')].join(' '));
+  return q.split(/\s+/).every(w => hay.includes(w));
+}
+function renderTripsTab() {
+  const root = h('div');
+  const mem = memories();
+  if (mem.length && !ui.q) {
+    const list = mem.slice(0, 8).map(m => ({ tid: m.t.id, pid: m.p.id }));
+    const first = mem[0];
+    root.append(h('section', { class: 'memory' },
+      h('h2', {}, 'Neste dia'),
+      h('p', { class: 'mono', style: 'margin:0' }, [...new Set(mem.map(m => `há ${pl(m.years, 'ano', 'anos')} · ${m.t.title}`))].slice(0, 3).join('  ·  ')),
+      h('div', { class: 'thumbs' }, mem.slice(0, 8).map((m, i) => h('button', { type: 'button', 'aria-label': 'Abrir foto de ' + m.t.title, onclick: () => openLightbox(list, i) }, h('img', { src: blobUrl(m.p.id), alt: '', loading: 'lazy' }))))));
+  }
+  const allTags = {};
+  for (const t of trips) for (const g of (t.tags || [])) allTags[g] = (allTags[g] || 0) + 1;
+  const q = fold(ui.q).trim();
+  root.append(h('div', { class: 'bar' },
+    h('div', { class: 'search' }, h('input', { class: 'input', id: 'search', type: 'search', placeholder: 'Procurar por título, local, nota ou legenda', value: ui.q, 'aria-label': 'Procurar viagens',
+      oninput: e => { ui.q = e.target.value; clearTimeout(ui._t); ui._t = setTimeout(() => { render(); const i = $('#search'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); } })),
+    h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.fav ? 'true' : 'false', onclick: () => { ui.fav = !ui.fav; render(); } }, '♥ Favoritas'),
+    h('div', { class: 'chips' },
+      h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.layout === 'grelha' ? 'true' : 'false', onclick: () => { ui.layout = 'grelha'; render(); } }, 'Grelha'),
+      h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.layout === 'tempo' ? 'true' : 'false', onclick: () => { ui.layout = 'tempo'; render(); } }, 'Linha do tempo'))));
+  if (Object.keys(allTags).length) root.append(h('div', { class: 'chips', style: 'margin:-8px 0 22px' }, Object.keys(allTags).sort().map(g =>
+    h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.tag === g ? 'true' : 'false', onclick: () => { ui.tag = ui.tag === g ? '' : g; render(); } }, g + ' · ' + allTags[g]))));
+
+  const sorted = trips.filter(t => matchTrip(t, q) && (!ui.fav || t.fav) && (!ui.tag || (t.tags || []).includes(ui.tag)))
+    .sort((a, b) => (b.start || b.createdAt || '').localeCompare(a.start || a.createdAt || ''));
+  if (!sorted.length) { root.append(h('p', { class: 'mono' }, 'Nenhuma viagem corresponde ao filtro.')); return root; }
+  if (ui.layout === 'tempo') {
+    const tl = h('div', { class: 'timeline' });
+    for (const t of sorted) {
+      const days = tripDayCount(t);
+      tl.append(h('div', { class: 'tl-item' },
+        h('button', { class: 'card', type: 'button', 'aria-label': 'Abrir ' + t.title, onclick: () => go(t.id) }, coverEl(t)),
+        h('div', { class: 'body' },
+          h('p', { class: 'mono' }, [dateText(t), days > 1 ? pl(days, 'dia', 'dias') : ''].filter(Boolean).join('  ·  ')),
+          h('h3', {}, h('button', { type: 'button', style: 'all:unset;cursor:pointer', onclick: () => go(t.id) }, t.title)),
+          placeText(t) ? h('p', {}, placeText(t)) : null,
+          t.note ? h('p', { class: 'clamp note' }, t.note) : null,
+          (t.tags || []).length ? h('div', { class: 'tagline' }, t.tags.map(x => h('span', {}, x))) : null)));
+    }
+    root.append(tl);
+    return root;
+  }
+  const groups = new Map();
+  for (const t of sorted) { const y = yearOf(t); if (!groups.has(y)) groups.set(y, []); groups.get(y).push(t); }
+  const years = h('div', { class: 'years' });
+  for (const [y, list] of groups) years.append(h('section', {}, h('h2', { class: 'year' }, y), h('div', { class: 'grid' }, list.map(card))));
+  root.append(years);
+  return root;
+}
+
+/* separador Ano */
+function renderYearTab() {
+  const root = h('div');
+  const yrs = trips.map(t => +(t.start || '').slice(0, 4)).filter(Boolean);
+  const minY = yrs.length ? Math.min(...yrs) : ui.year, maxY = Math.max(yrs.length ? Math.max(...yrs) : ui.year, new Date().getFullYear());
+  ui.year = Math.max(minY, Math.min(maxY, ui.year));
+  const Y = ui.year;
+  const dayMap = new Map(), inYear = new Set();
+  for (const t of trips) {
+    const a = parseYmd(t.start); if (!a) continue;
+    let b = parseYmd(t.end) || a; if (b < a) b = a;
+    for (let d = new Date(a), n = 0; d <= b && n < 366; d.setUTCDate(d.getUTCDate() + 1), n++) {
+      const key = fmtYmd(d);
+      if (+key.slice(0, 4) === Y) { dayMap.set(key, t); inYear.add(t.id); }
+    }
+  }
+  root.append(h('div', { class: 'yearbar' },
+    h('button', { class: 'btn sm quiet', type: 'button', 'aria-label': 'Ano anterior', disabled: Y <= minY, onclick: () => { ui.year--; render(); } }, '←'),
+    h('h2', {}, String(Y)),
+    h('button', { class: 'btn sm quiet', type: 'button', 'aria-label': 'Ano seguinte', disabled: Y >= maxY, onclick: () => { ui.year++; render(); } }, '→'),
+    h('span', { class: 'mono' }, dayMap.size ? `${pl(dayMap.size, 'dia', 'dias')} fora em ${pl(inYear.size, 'viagem', 'viagens')}` : 'Sem viagens com datas neste ano')));
+  const months = h('div', { class: 'months' });
+  for (let m = 0; m < 12; m++) {
+    const first = new Date(Date.UTC(Y, m, 1)).getUTCDay(), off = (first + 6) % 7, n = new Date(Date.UTC(Y, m + 1, 0)).getUTCDate();
+    const cal = h('div', { class: 'cal' }, ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map(x => h('span', { class: 'wd' }, x)));
+    for (let i = 0; i < off; i++) cal.append(h('span'));
+    for (let d = 1; d <= n; d++) {
+      const key = `${Y}-${pad2(m + 1)}-${pad2(d)}`, t = dayMap.get(key);
+      cal.append(t ? h('button', { class: 'd', type: 'button', title: t.title, 'aria-label': `${d} de ${MONTHS_LONG[m]}: ${t.title}`, style: `background:hsl(${hueOf(t.title)} 55% 38%)`, onclick: () => go(t.id) }, String(d))
+        : h('span', { class: 'd' }, String(d)));
+    }
+    months.append(h('div', { class: 'month' }, h('h3', {}, MONTHS_LONG[m]), cal));
+  }
+  root.append(months);
+  const list = trips.filter(t => inYear.has(t.id)).sort((a, b) => a.start.localeCompare(b.start));
+  if (list.length) root.append(h('div', { class: 'legend' }, list.map(t => h('button', { type: 'button', onclick: () => go(t.id) },
+    h('i', { style: `background:hsl(${hueOf(t.title)} 55% 38%)` }), h('b', {}, t.title), h('span', { class: 'mono' }, [dateText(t), placeText(t)].filter(Boolean).join('  ·  '))))));
+  return root;
+}
+
+/* separador Fotos */
+function photoFig(t, p, onOpen) {
+  return h('figure', {},
+    h('button', { class: 'photo', type: 'button', 'aria-label': 'Abrir foto' + (p.caption ? ': ' + p.caption : ''), onclick: onOpen },
+      h('img', { src: blobUrl(p.id), alt: p.caption || 'Foto de ' + t.title, loading: 'lazy', decoding: 'async', style: (p.w && p.h) ? `aspect-ratio:${p.w}/${p.h}` : null })),
+    p.fav ? h('span', { class: 'heart', 'aria-label': 'Favorita' }, '♥') : null,
+    p.caption ? h('figcaption', {}, p.caption) : null);
+}
+function renderPhotosTab() {
+  const root = h('div');
+  let all = [];
+  for (const t of trips) for (const p of (t.photos || [])) all.push({ t, p, date: p.date || t.start || '' });
+  if (!all.length) { root.append(h('div', { class: 'empty' }, h('h2', {}, 'Ainda não há fotos.'), h('p', {}, 'Abre uma viagem e junta as primeiras fotos, ou usa "Importar fotos" no topo.'))); return root; }
+  const years = [...new Set(all.map(x => x.date.slice(0, 4)).filter(Boolean))].sort().reverse();
+  if (ui.pYear && !years.includes(ui.pYear)) ui.pYear = '';
+  root.append(h('div', { class: 'bar' },
+    h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.pFav ? 'true' : 'false', onclick: () => { ui.pFav = !ui.pFav; render(); } }, '♥ Favoritas'),
+    h('div', { class: 'chips' }, h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.pYear === '' ? 'true' : 'false', onclick: () => { ui.pYear = ''; render(); } }, 'Todos os anos'),
+      years.map(y => h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.pYear === y ? 'true' : 'false', onclick: () => { ui.pYear = y; render(); } }, y)))));
+  all = all.filter(x => (!ui.pFav || x.p.fav) && (!ui.pYear || x.date.startsWith(ui.pYear))).sort((a, b) => b.date.localeCompare(a.date));
+  if (!all.length) { root.append(h('p', { class: 'mono' }, 'Nenhuma foto corresponde ao filtro.')); return root; }
+  const list = all.map(x => ({ tid: x.t.id, pid: x.p.id }));
+  const idx = new Map(all.map((x, i) => [x.p.id, i]));
+  const groups = new Map();
+  for (const x of all) { const k = monthKey(x.date); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); }
+  for (const [k, items] of groups) {
+    root.append(h('h2', { class: 'month-h' }, monthLabel(k)));
+    root.append(h('div', { class: 'wall' }, items.map(x => photoFig(x.t, x.p, () => openLightbox(list, idx.get(x.p.id))))));
+  }
+  return root;
+}
+
+/* ---------- viagem ---------- */
+function orderedPhotos(t) {
+  const days = tripDays(t), photos = t.photos || [];
+  const out = [];
+  for (const d of days) for (const p of photos) if (p.date === d) out.push(p);
+  for (const p of photos) if (!p.date || !days.includes(p.date)) out.push(p);
+  return out;
+}
+function renderTrip() {
+  const t = tripById(view.id);
+  const root = h('div');
+  root.append(h('button', { class: 'back', type: 'button', onclick: () => go(null) }, '← Todas as viagens'));
+  if (!t) { root.append(h('p', { class: 'mono' }, loaded ? 'Esta viagem já não existe.' : 'A carregar viagem…')); return root; }
+  const photos = t.photos || [];
+  const dc = tripDayCount(t);
+  const when = [dateText(t), dc > 1 ? pl(dc, 'dia', 'dias') : '', photos.length ? pl(photos.length, 'foto', 'fotos') : ''].filter(Boolean).join('  ·  ');
+  const canUpload = canWrite && !!assets;
+  root.append(h('header', { class: 'trip-head' },
+    when ? h('p', { class: 'mono', style: 'margin:0' }, when) : null,
+    h('h1', { style: 'margin:0' }, t.title),
+    placeText(t) ? h('p', { class: 'where' }, placeText(t)) : null,
+    (t.tags || []).length ? h('div', { class: 'tagline' }, t.tags.map(x => h('span', {}, x))) : null,
+    t.note ? h('p', { class: 'note' }, t.note) : null,
+    h('div', { class: 'row' },
+      canUpload ? h('button', { class: 'btn primary', type: 'button', onclick: () => pickFiles(t.id) }, 'Adicionar fotos') : null,
+      canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTripForm(t) }, 'Editar viagem') : null,
+      canWrite ? h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': t.fav ? 'true' : 'false', onclick: () => saveTrip(t.id, () => ({ fav: !t.fav })) }, '♥ Favorita') : null,
+      h('button', { class: 'btn quiet', type: 'button', onclick: () => openBook(t.id) }, 'Ver como livro'),
+      downloads ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportBook(t.id) }, 'Exportar livro') : null)));
+
+  const pt = tripPoint(t);
+  if (pt) {
+    const dots = photos.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+    const m = createMap({ pins: [{ id: t.id, lat: pt.lat, lng: pt.lng, label: t.title }], dots, view: fitView([pt].concat(dots), 260), label: 'Mapa da viagem', onPin: () => {} });
+    root.append(h('div', { class: 'trip-mini' }, m.el,
+      h('p', { class: 'mono', style: 'margin:8px 0 0' }, pt.src === 'manual' ? 'Local marcado por ti.' : pt.src === 'fotos' ? 'Local calculado a partir do GPS das fotos' + (dots.length ? ` (${pl(dots.length, 'foto', 'fotos')} com GPS).` : '.') : 'Centro do país. Marca o sítio exato ao editar a viagem.')));
+  }
+
+  const days = tripDays(t);
+  const byDay = new Map(), loose = [];
+  for (const p of photos) { if (p.date && days.includes(p.date)) { if (!byDay.has(p.date)) byDay.set(p.date, []); byDay.get(p.date).push(p); } else loose.push(p); }
+  const order = orderedPhotos(t).map(p => ({ tid: t.id, pid: p.id }));
+  const openAt = p => openLightbox(order, order.findIndex(x => x.pid === p.id));
+  const showAll = days.length <= 45;
+  const blocks = h('div', { class: 'days' });
+  for (const d of days) {
+    const text = (t.days || {})[d] || '', ps = byDay.get(d) || [];
+    if (!showAll && !text && !ps.length) continue;
+    if (!canWrite && !text && !ps.length) continue;
+    const n = t.start && parseYmd(t.start) ? diffDays(t.start, d) + 1 : null;
+    const empty = !text && !ps.length;
+    const blk = h('section', { class: 'day' + (empty ? ' empty-day' : '') },
+      h('div', { class: 'day-h' }, n && n >= 1 ? h('b', {}, 'Dia ' + n) : null, h('span', { class: 'mono' }, dfmtLong.format(parseYmd(d)))));
+    if (canWrite) {
+      const ta = h('textarea', { class: 'input', id: 'day-' + d, 'aria-label': 'Nota do dia ' + d, placeholder: 'O que aconteceu neste dia?', style: empty ? 'min-height:44px' : null,
+        onchange: e => { const v = e.target.value.trim(); saveTrip(t.id, () => ({ days: { [d]: v } })); } });
+      ta.value = text; blk.append(ta);
+    } else if (text) blk.append(h('p', { class: 'txt' }, text));
+    if (ps.length) blk.append(h('div', { class: 'wall' }, ps.map(p => photoFig(t, p, () => openAt(p)))));
+    blocks.append(blk);
+  }
+  if (loose.length) {
+    const wall = h('div', { class: 'wall' }, loose.map(p => photoFig(t, p, () => openAt(p))));
+    if (canUpload) wireDrop(wall, t.id);
+    blocks.append(h('section', { class: 'day' }, h('div', { class: 'day-h' }, h('b', {}, days.length ? 'Fotos sem dia' : 'Fotos')), wall));
+  }
+  if (!photos.length) {
+    const drop = h('div', { class: 'drop' },
+      h('p', {}, canUpload ? 'Ainda sem fotos. Arrasta imagens para aqui ou escolhe-as no dispositivo. Leio a data e o GPS que estiverem guardados nelas.' : 'Esta viagem ainda não tem fotos.'),
+      canUpload ? h('button', { class: 'btn primary', type: 'button', onclick: () => pickFiles(t.id) }, 'Escolher fotos') : null);
+    if (canUpload) wireDrop(drop, t.id);
+    blocks.append(drop);
+  }
+  root.append(blocks);
+  return root;
+}
+function wireDrop(el, tripId) {
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('over');
+    const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
+    if (files.length) addPhotos(tripId, files);
+  });
+}
+
+/* ---------- render e navegação ---------- */
+function render() {
+  const y = window.scrollY;
+  $('#app').replaceChildren(view.name === 'trip' ? renderTrip() : renderHome());
+  window.scrollTo(0, y);
+}
+const SAFE = /^[A-Za-z0-9-]+$/;
+function go(id) {
+  if (id && SAFE.test(id)) location.hash = 'viagem-' + id;
+  else if (id) { view = { name: 'trip', id }; render(); window.scrollTo(0, 0); }
+  else location.hash = ui.tab;
+}
+function applyHash() {
+  const hs = location.hash.slice(1);
+  const m = hs.match(/^viagem-([A-Za-z0-9-]+)$/);
+  let nv = view;
+  if (m) nv = { name: 'trip', id: m[1] };
+  else { if (TABS.some(([k]) => k === hs)) ui.tab = hs; nv = { name: 'home', id: null }; }
+  const changed = nv.name !== view.name || nv.id !== view.id;
+  view = nv;
+  if (changed) { closeLightbox(); closeModal(); closeBook(); window.scrollTo(0, 0); }
+  render();
+}
+window.addEventListener('hashchange', applyHash);
+
+/* ---------- gravação ---------- */
+function saveTrip(tripId, build) {
+  return enqueue(tripId, async () => {
+    const t = tripById(tripId);
+    if (!t) return false;
+    const patch = build(t);
+    if (!patch) return false;
+    try { await db.doc('trips/' + tripId).update(patch); return true; }
+    catch (e) { setStatus('Não foi possível guardar. Tenta outra vez.', 4000); return false; }
+  });
+}
+
+/* ---------- fotos: leitura, envio ---------- */
+const fileInput = $('#file-input');
+const importInput = $('#import-input');
+let pickTarget = null;
+function pickFiles(tripId) { pickTarget = tripId; fileInput.click(); }
+function pickImport() { importInput.click(); }
+fileInput.addEventListener('change', () => {
+  const files = [...fileInput.files].filter(f => f.type.startsWith('image/'));
+  fileInput.value = '';
+  if (files.length && pickTarget) addPhotos(pickTarget, files);
+});
+importInput.addEventListener('change', () => {
+  const files = [...importInput.files].filter(f => f.type.startsWith('image/'));
+  importInput.value = '';
+  if (files.length) openImport(files);
+});
+
+async function readExif(file) {
+  try { return parseExif(await file.slice(0, 262144).arrayBuffer()); } catch (e) { return null; }
+}
+async function prepare(file) {
+  if (file.type === 'image/gif') return { blob: file, w: 0, h: 0 };
+  try {
+    const bmp = await createImageBitmap(file);
+    const max = 2400, w0 = bmp.width, h0 = bmp.height;
+    const s = Math.min(1, max / Math.max(w0, h0));
+    if (s === 1 && file.type === 'image/jpeg' && file.size < 3e6) { bmp.close && bmp.close(); return { blob: file, w: w0, h: h0 }; }
+    const w = Math.round(w0 * s), hh = Math.round(h0 * s);
+    const c = document.createElement('canvas'); c.width = w; c.height = hh;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, hh);
+    ctx.drawImage(bmp, 0, 0, w, hh);
+    bmp.close && bmp.close();
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.86));
+    if (blob) return { blob, w, h: hh };
+  } catch (e) { /* tenta o original */ }
+  if (['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return { blob: file, w: 0, h: 0 };
+  throw { code: 'unsupported_type' };
+}
+const upMsg = {
+  too_large: 'Uma foto é demasiado grande.',
+  quota_or_state: 'O espaço do álbum está cheio.',
+  rate_limited: 'Demasiados envios seguidos. Espera um momento.',
+  unsupported_type: 'Formato de imagem não suportado.'
+};
+
+/* envia ficheiros e junta-os a uma viagem; entries: [{file, date, lat, lng}] */
+async function addEntries(tripId, entries, label) {
+  const added = []; let failMsg = '';
+  for (let i = 0; i < entries.length; i++) {
+    setStatus(`${label || 'A enviar'} foto ${i + 1} de ${entries.length}…`);
+    try {
+      const { blob, w, h: hh } = await prepare(entries[i].file);
+      const r = await assets.upload(blob);
+      const rec = { id: r.id, w, h: hh, caption: '' };
+      if (entries[i].date) rec.date = entries[i].date;
+      if (Number.isFinite(entries[i].lat) && Number.isFinite(entries[i].lng)) { rec.lat = Math.round(entries[i].lat * 1e5) / 1e5; rec.lng = Math.round(entries[i].lng * 1e5) / 1e5; }
+      added.push(rec);
+    } catch (e) {
+      failMsg = upMsg[e && e.code] || 'Não foi possível enviar uma das fotos.';
+      if (e && (e.code === 'quota_or_state' || e.code === 'rate_limited')) break;
+    }
+  }
+  let ok = true, filled = false;
+  if (added.length) {
+    ok = await saveTrip(tripId, t => {
+      const patch = { photos: (t.photos || []).concat(added), cover: coverId(t) || added[0].id };
+      const ds = added.map(p => p.date).filter(Boolean).sort();
+      if (ds.length && !parseYmd(t.start)) { patch.start = ds[0]; patch.end = ds[ds.length - 1]; filled = true; }
+      return patch;
+    });
+  }
+  return { added: added.length, ok, failMsg, filled };
+}
+async function addPhotos(tripId, files) {
+  if (!assets || uploading) return;
+  uploading = true;
+  try {
+    const entries = [];
+    for (const f of files) { const ex = await readExif(f); entries.push({ file: f, date: ex && ex.date || '', lat: ex ? ex.lat : null, lng: ex ? ex.lng : null }); }
+    const r = await addEntries(tripId, entries);
+    if (r.added) setStatus((r.ok ? pl(r.added, 'foto guardada', 'fotos guardadas') + '.' : 'Fotos enviadas, mas não ficaram associadas à viagem.') + (r.failMsg ? ' ' + r.failMsg : '') + (r.filled ? ' Preenchi as datas da viagem.' : ''), 5000);
+    else setStatus(r.failMsg || 'Nenhuma foto enviada.', 4500);
+  } finally { uploading = false; }
+}
+
+/* ---------- importar fotos e propor viagens ---------- */
+async function openImport(files) {
+  if (!canWrite || !assets || uploading) return;
+  const items = [];
+  for (let i = 0; i < files.length; i++) {
+    if (i % 8 === 0) setStatus(`A ler as fotos ${i + 1} a ${Math.min(files.length, i + 8)} de ${files.length}…`);
+    const f = files[i], ex = await readExif(f);
+    items.push({ file: f, date: (ex && ex.date) || localYmd(new Date(f.lastModified || Date.now())), time: (ex && ex.time) || '', lat: ex ? ex.lat : null, lng: ex ? ex.lng : null, exif: !!(ex && ex.date) });
+  }
+  setStatus(null);
+  const urls = [];
+  const props = groupByDate(items, 2).map(g => {
+    const gps = g.items.filter(x => x.lat != null);
+    const lat = gps.length ? median(gps.map(x => x.lat)) : null, lng = gps.length ? median(gps.map(x => x.lng)) : null;
+    const c = lat != null ? nearestCountry(lat, lng) : null;
+    const a = parseYmd(g.start);
+    return { on: true, start: g.start, end: g.end, items: g.items, country: c ? c.name : '', gps: gps.length, title: `${c ? c.name : 'Viagem'} · ${MONTHS[a.getUTCMonth()]} ${a.getUTCFullYear()}` };
+  });
+  lastFocus = document.activeElement;
+  const err = h('p', { class: 'err', role: 'alert', hidden: true });
+  const list = h('div');
+  const createBtn = h('button', { class: 'btn primary', type: 'button' });
+  const dl = h('datalist', { id: 'countries-dl' }, COUNTRIES.map(c => h('option', { value: c.name })));
+  const refresh = () => { const n = props.filter(p => p.on).length; createBtn.textContent = n ? `Criar ${pl(n, 'viagem', 'viagens')}` : 'Nada selecionado'; createBtn.disabled = !n; };
+  props.forEach((p, i) => {
+    const thumbs = p.items.slice(0, 8).map(x => { const u = URL.createObjectURL(x.file); urls.push(u); return h('img', { src: u, alt: '' }); });
+    const row = h('div', { class: 'proposal' },
+      h('div', { class: 'head' },
+        h('input', { type: 'checkbox', checked: true, 'aria-label': 'Incluir esta viagem', onchange: e => { p.on = e.target.checked; row.classList.toggle('off', !p.on); refresh(); } }),
+        h('input', { class: 'input', type: 'text', maxlength: '80', value: p.title, 'aria-label': 'Título', oninput: e => { p.title = e.target.value; } })),
+      h('div', { class: 'two' },
+        h('div', { class: 'f' }, h('label', {}, 'PAÍS'), h('input', { class: 'input', type: 'text', list: 'countries-dl', maxlength: '60', value: p.country, oninput: e => { p.country = e.target.value; } })),
+        h('div', { class: 'f' }, h('label', {}, 'DATAS'), h('div', { class: 'mono', style: 'min-height:44px;display:flex;align-items:center' }, dateText({ start: p.start, end: p.end })))),
+      h('p', { class: 'mono', style: 'margin:0' }, pl(p.items.length, 'foto', 'fotos') + (p.gps ? ` · ${pl(p.gps, 'foto', 'fotos')} com GPS` : ' · sem GPS') + (p.items.some(x => !x.exif) ? ' · algumas sem data própria (uso a data do ficheiro)' : '')),
+      h('div', { class: 'thumbs' }, thumbs));
+    list.append(row);
+  });
+  refresh();
+  const close = () => { urls.forEach(u => URL.revokeObjectURL(u)); closeModal(); };
+  createBtn.addEventListener('click', async () => {
+    const chosen = props.filter(p => p.on);
+    if (!chosen.length) return;
+    createBtn.disabled = true; uploading = true; err.hidden = true;
+    let firstId = null, made = 0, lost = 0;
+    try {
+      for (let i = 0; i < chosen.length; i++) {
+        const p = chosen[i];
+        const ref = await db.collection('trips').add({ title: p.title.trim() || 'Viagem', place: '', country: p.country.trim(), start: p.start, end: p.end, note: '', tags: [], photos: [], cover: null, days: {}, createdAt: new Date().toISOString() });
+        if (!firstId) firstId = ref.id;
+        made++;
+        await new Promise(r => setTimeout(r, 0));
+        const r = await addEntries(ref.id, p.items.map(x => ({ file: x.file, date: x.date, lat: x.lat, lng: x.lng })), `Viagem ${i + 1} de ${chosen.length}: a enviar`);
+        lost += p.items.length - r.added;
+        if (r.failMsg && /espaço|Demasiados/.test(r.failMsg)) { err.textContent = r.failMsg; err.hidden = false; break; }
+      }
+    } catch (e) { err.textContent = 'Não foi possível criar as viagens. Tenta outra vez.'; err.hidden = false; }
+    uploading = false; setStatus(null);
+    if (made) { setStatus(`${pl(made, 'viagem criada', 'viagens criadas')}.` + (lost ? ` ${pl(lost, 'foto não foi enviada', 'fotos não foram enviadas')}.` : ''), 5000); close(); ui.tab = 'viagens'; if (made === 1 && firstId) go(firstId); else location.hash = 'viagens'; }
+    else createBtn.disabled = false;
+  });
+  modal = h('div', { class: 'backdrop', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Importar fotos', onmousedown: e => { if (e.target === modal && !uploading) close(); } },
+    h('div', { class: 'panel wide' }, h('h2', {}, 'Importar fotos'),
+      h('p', { class: 'help' }, `Li ${pl(items.length, 'foto', 'fotos')} e agrupei-as em ${pl(props.length, 'viagem', 'viagens')} possíveis: fotos com mais de 2 dias de intervalo ficam em viagens diferentes. O país é uma sugestão a partir do GPS, confirma-o.`),
+      dl, list, err,
+      h('div', { class: 'actions' }, createBtn, h('button', { class: 'btn quiet', type: 'button', onclick: () => { if (!uploading) close(); } }, 'Cancelar'))));
+  lockScroll(); document.body.append(modal);
+}
+
+/* ---------- visualizador de fotos ---------- */
+function lbItem(i) {
+  const it = lb.list[i]; if (!it) return null;
+  const t = tripById(it.tid); const p = t && (t.photos || []).find(x => x.id === it.pid);
+  return p ? { t, p } : null;
+}
+function openLightbox(list, i) {
+  if (!list.length) return;
+  lastFocus = document.activeElement;
+  lb = { list: list.slice(), i: Math.max(0, i), confirm: false, el: null };
+  lockScroll(); drawLightbox();
+}
+function closeLightbox() {
+  if (!lb) return;
+  lb.el && lb.el.remove(); lb = null; unlockScroll();
+  lastFocus && lastFocus.focus && lastFocus.focus();
+}
+function lbStep(d) { if (!lb || lb.list.length < 2) return; lb.i = (lb.i + d + lb.list.length) % lb.list.length; lb.confirm = false; drawLightbox(); }
+function drawLightbox() {
+  if (!lb) return;
+  lb.list = lb.list.filter((_, i) => { const keep = !!lbItem(i); return keep; });
+  if (!lb.list.length) { closeLightbox(); return; }
+  lb.i = Math.min(lb.i, lb.list.length - 1);
+  const { t, p } = lbItem(lb.i);
+  if (lb.el && document.activeElement && ['cap-input', 'date-input'].includes(document.activeElement.id)) return;
+  const isCover = coverId(t) === p.id;
+  const n = lb.list.length;
+  const metaBits = [p.date ? dfmt.format(parseYmd(p.date)) : '', (Number.isFinite(p.lat) && Number.isFinite(p.lng)) ? 'com GPS' : ''].filter(Boolean).join('  ·  ');
+  const el = h('div', { class: 'lb', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Foto ' + (lb.i + 1) + ' de ' + n },
+    h('div', { class: 'bar' },
+      h('span', { class: 'mono' }, `${lb.i + 1} / ${n}  ·  ${t.title}`),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn sm', type: 'button', onclick: () => { const id = t.id; closeLightbox(); go(id); } }, 'Abrir viagem'),
+        h('button', { class: 'btn sm', type: 'button', id: 'lb-close', onclick: closeLightbox }, 'Fechar'))),
+    h('div', { class: 'stage' },
+      h('img', { src: blobUrl(p.id), alt: p.caption || 'Foto de ' + t.title }),
+      n > 1 ? h('button', { class: 'btn nav prev', type: 'button', 'aria-label': 'Foto anterior', onclick: () => lbStep(-1) }, '←') : null,
+      n > 1 ? h('button', { class: 'btn nav next', type: 'button', 'aria-label': 'Foto seguinte', onclick: () => lbStep(1) }, '→') : null),
+    h('div', { class: 'foot' },
+      canWrite
+        ? h('input', { class: 'input', id: 'cap-input', type: 'text', maxlength: '160', placeholder: 'Escreve uma legenda', value: p.caption || '', 'aria-label': 'Legenda da foto',
+            onchange: e => { const v = e.target.value.trim(); saveTrip(t.id, cur => ({ photos: (cur.photos || []).map(x => x.id === p.id ? { ...x, caption: v } : x) })); } })
+        : h('p', { class: 'cap' }, p.caption || ''),
+      !canWrite && metaBits ? h('p', { class: 'mono meta' }, metaBits) : null,
+      canWrite ? h('div', { class: 'row', style: 'justify-content:center' },
+        h('button', { class: 'btn sm', type: 'button', 'aria-pressed': p.fav ? 'true' : 'false', onclick: () => saveTrip(t.id, cur => ({ photos: (cur.photos || []).map(x => x.id === p.id ? { ...x, fav: !x.fav } : x) })) }, '♥ Favorita'),
+        h('label', { class: 'mono', for: 'date-input', style: 'color:inherit' }, 'Dia'),
+        h('input', { class: 'input', id: 'date-input', type: 'date', style: 'width:auto;min-height:36px', value: p.date || '', 'aria-label': 'Dia da foto',
+          onchange: e => { const v = e.target.value; saveTrip(t.id, cur => ({ photos: (cur.photos || []).map(x => { if (x.id !== p.id) return x; const y = { ...x }; if (v) y.date = v; else delete y.date; return y; }) })); } }),
+        h('button', { class: 'btn sm', type: 'button', disabled: isCover, onclick: async () => { const ok = await saveTrip(t.id, () => ({ cover: p.id })); if (ok) setStatus('Capa atualizada.', 2500); } }, isCover ? 'É a capa' : 'Definir como capa'),
+        h('button', { class: 'btn sm danger', type: 'button', onclick: () => deletePhoto(t, p) }, lb.confirm ? 'Confirmar: apagar para sempre' : 'Apagar foto')) : null));
+  lb.el && lb.el.remove();
+  lb.el = el; document.body.append(el);
+  const focusId = lb.refocus; lb.refocus = null;
+  (focusId && $('#' + focusId, el) || $('#lb-close', el)).focus();
+}
+async function deletePhoto(t, p) {
+  if (!lb.confirm) { lb.confirm = true; drawLightbox(); return; }
+  const ok = await saveTrip(t.id, cur => {
+    const rest = (cur.photos || []).filter(x => x.id !== p.id);
+    return { photos: rest, cover: coverId({ ...cur, photos: rest }) };
+  });
+  if (!ok) { if (lb) { lb.confirm = false; drawLightbox(); } return; }
+  if (assets) { try { await assets.delete(p.id); } catch (e) { /* o ficheiro fica órfão, sem impacto */ } }
+  if (lb) { lb.confirm = false; drawLightbox(); }
+  setStatus('Foto apagada.', 2500);
+}
+
+/* ---------- formulário de viagem ---------- */
+function closeModal() {
+  if (!modal) return;
+  modal.remove(); modal = null; unlockScroll();
+  lastFocus && lastFocus.focus && lastFocus.focus();
+}
+function field(id, label, input) { return h('div', { class: 'f' }, h('label', { for: id }, label), input); }
+
+function openTripForm(t) {
+  if (!canWrite || !db) return;
+  lastFocus = document.activeElement;
+  const editing = !!t;
+  const err = h('p', { class: 'err', role: 'alert', hidden: true });
+  const f = {
+    title: h('input', { class: 'input', id: 'f-title', type: 'text', maxlength: '80', value: editing ? t.title : '', placeholder: 'Ex.: Dolomitas' }),
+    place: h('input', { class: 'input', id: 'f-place', type: 'text', maxlength: '80', value: editing ? (t.place || '') : '', placeholder: 'Cidade ou região' }),
+    country: h('input', { class: 'input', id: 'f-country', type: 'text', list: 'countries-dl', maxlength: '60', value: editing ? (t.country || '') : '', placeholder: 'País' }),
+    start: h('input', { class: 'input', id: 'f-start', type: 'date', value: editing ? (t.start || '') : '' }),
+    end: h('input', { class: 'input', id: 'f-end', type: 'date', value: editing ? (t.end || '') : '' }),
+    tags: h('input', { class: 'input', id: 'f-tags', type: 'text', maxlength: '120', value: editing ? (t.tags || []).join(', ') : '', placeholder: 'praia, cidade, família' }),
+    note: h('textarea', { class: 'input', id: 'f-note', maxlength: '2000', placeholder: 'O que queres lembrar desta viagem?' })
+  };
+  f.note.value = editing ? (t.note || '') : '';
+  let pick = editing && Number.isFinite(t.lat) && Number.isFinite(t.lng) ? { lat: t.lat, lng: t.lng } : null;
+  const locInfo = h('span', { class: 'mono' });
+  const showLoc = () => {
+    const c = findCountry(f.country.value);
+    locInfo.textContent = pick ? `Marcado: ${pick.lat.toFixed(2)}, ${pick.lng.toFixed(2)}` : c ? `Sem marca: uso o centro de ${c.name}. Toca no mapa para marcar o sítio.` : 'Toca no mapa para marcar o sítio, ou indica o país.';
+  };
+  const picker = createMap({ pins: [], view: pick ? fitView([pick], 300) : { x: 0, y: 0, w: MAP_W }, pick, label: 'Escolher o local no mapa', onPick: (la, lo) => { pick = { lat: la, lng: lo }; picker.setPick(pick); showLoc(); } });
+  f.country.addEventListener('input', showLoc);
+  showLoc();
+  const clearLoc = h('button', { class: 'btn sm quiet', type: 'button', onclick: () => { pick = null; picker.setPick(null); showLoc(); } }, 'Limpar marca');
+  const dl = h('datalist', { id: 'countries-dl' }, COUNTRIES.map(c => h('option', { value: c.name })));
+
+  const delBox = h('div', { class: 'row' });
+  let confirmDel = false;
+  const delBtn = h('button', { class: 'btn danger', type: 'button', onclick: async () => {
+    if (!confirmDel) { confirmDel = true; delBtn.textContent = `Confirmar: apagar viagem e ${pl((t.photos || []).length, 'foto', 'fotos')}`; return; }
+    delBtn.disabled = true; delBtn.textContent = 'A apagar…';
+    try {
+      await enqueue(t.id, async () => {
+        await db.doc('trips/' + t.id).delete();
+        if (assets) for (const p of (t.photos || [])) { try { await assets.delete(p.id); } catch (e) { /* ignora */ } }
+      });
+      closeModal(); go(null); setStatus('Viagem apagada.', 2500);
+    } catch (e) { delBtn.disabled = false; delBtn.textContent = 'Apagar viagem'; confirmDel = false; err.textContent = 'Não foi possível apagar. Tenta outra vez.'; err.hidden = false; }
+  } }, 'Apagar viagem');
+  if (editing) delBox.append(delBtn);
+
+  const saveBtn = h('button', { class: 'btn primary', type: 'submit' }, editing ? 'Guardar' : 'Criar viagem');
+  const form = h('form', { novalidate: true,
+    onsubmit: async e => {
+      e.preventDefault();
+      const data = {
+        title: f.title.value.trim(), place: f.place.value.trim(), country: f.country.value.trim(),
+        start: f.start.value, end: f.end.value, note: f.note.value.trim(),
+        tags: [...new Set(f.tags.value.split(',').map(x => x.trim()).filter(Boolean))].slice(0, 12)
+      };
+      if (!data.title) { err.textContent = 'Dá um título à viagem.'; err.hidden = false; f.title.focus(); return; }
+      if (data.start && data.end && data.end < data.start) { err.textContent = 'A data de regresso é anterior à de partida.'; err.hidden = false; f.end.focus(); return; }
+      err.hidden = true; saveBtn.disabled = true;
+      try {
+        if (editing) {
+          const patch = { ...data, lat: pick ? pick.lat : null, lng: pick ? pick.lng : null };
+          await enqueue(t.id, () => db.doc('trips/' + t.id).update(patch));
+          closeModal();
+        } else {
+          const doc = { ...data, photos: [], cover: null, days: {}, createdAt: new Date().toISOString() };
+          if (pick) { doc.lat = pick.lat; doc.lng = pick.lng; }
+          const ref = await db.collection('trips').add(doc);
+          closeModal(); go(ref.id);
+        }
+      } catch (e2) {
+        saveBtn.disabled = false;
+        err.textContent = 'Não foi possível guardar. Tenta outra vez.'; err.hidden = false;
+      }
+    } },
+    field('f-title', 'TÍTULO', f.title),
+    h('div', { class: 'two' }, field('f-place', 'LOCAL', f.place), field('f-country', 'PAÍS', f.country)),
+    h('div', { class: 'two' }, field('f-start', 'PARTIDA', f.start), field('f-end', 'REGRESSO', f.end)),
+    h('div', { class: 'f' }, h('label', {}, 'LOCALIZAÇÃO NO MAPA'), picker.el, h('div', { class: 'locrow' }, locInfo, clearLoc)),
+    field('f-tags', 'ETIQUETAS (SEPARADAS POR VÍRGULAS)', f.tags),
+    field('f-note', 'NOTA', f.note),
+    dl, err,
+    h('div', { class: 'actions' },
+      h('div', { class: 'row' }, saveBtn, h('button', { class: 'btn quiet', type: 'button', onclick: closeModal }, 'Cancelar')),
+      delBox));
+  modal = h('div', { class: 'backdrop', role: 'dialog', 'aria-modal': 'true', 'aria-label': editing ? 'Editar viagem' : 'Nova viagem',
+    onmousedown: e => { if (e.target === modal) closeModal(); } },
+    h('div', { class: 'panel' }, h('h2', {}, editing ? 'Editar viagem' : 'Nova viagem'), form));
+  lockScroll();
+  document.body.append(modal);
+  f.title.focus();
+}
+
+/* ---------- livro ---------- */
+function bookPages(t) {
+  const pages = [{ k: 'cover' }];
+  if (tripPoint(t)) pages.push({ k: 'map' });
+  const photos = t.photos || [], days = tripDays(t), byDay = new Map(), loose = [];
+  for (const p of photos) { if (p.date && days.includes(p.date)) { if (!byDay.has(p.date)) byDay.set(p.date, []); byDay.get(p.date).push(p); } else loose.push(p); }
+  for (const d of days) {
+    const ps = byDay.get(d) || [], text = ((t.days || {})[d] || '').trim();
+    if (!ps.length && !text) continue;
+    const n = t.start && parseYmd(t.start) ? diffDays(t.start, d) + 1 : null;
+    if (text.length > 650 || !ps.length) { pages.push({ k: 'day', date: d, n, text, photos: [], solo: true }); chunk(ps, 4).forEach(c => pages.push({ k: 'day', date: d, n, text: '', photos: c })); }
+    else chunk(ps, 4).forEach((c, i) => pages.push({ k: 'day', date: d, n, text: i === 0 ? text : '', photos: c }));
+  }
+  chunk(loose, 4).forEach(c => pages.push({ k: 'day', date: '', n: null, text: '', photos: c, more: true }));
+  pages.push({ k: 'end' });
+  return pages;
+}
+function layoutOf(ps) {
+  if (ps.length === 1) return 'l1';
+  if (ps.length === 2) { const portrait = ps.filter(p => p.h > p.w).length; return portrait === 2 ? 'l2h' : portrait === 0 ? 'l2v' : 'l2h'; }
+  return ps.length === 3 ? 'l3' : 'l4';
+}
+function pageHTML(pg, t, ctx) {
+  const dc = tripDayCount(t), n = (t.photos || []).length;
+  if (pg.k === 'cover') {
+    const cid = coverId(t);
+    const bg = cid ? `<img class="bg" src="${esc(ctx.src(cid))}" alt="">` : `<div style="position:absolute;inset:0;background:linear-gradient(145deg,hsl(${hueOf(t.title)} 38% 34%),hsl(${(hueOf(t.title) + 38) % 360} 42% 26%))"></div>`;
+    return `<div class="pg cover">${bg}<div class="shade"></div><div class="t"><span class="mn">${esc([dateText(t), dc > 1 ? pl(dc, 'dia', 'dias') : ''].filter(Boolean).join('  ·  '))}</span><h2>${esc(t.title)}</h2>${placeText(t) ? `<p class="sub">${esc(placeText(t))}</p>` : ''}</div></div>`;
+  }
+  if (pg.k === 'map') return `<div class="pg mp"><div><h2>Onde</h2><span class="mn">${esc(placeText(t) || t.title)}</span>${(t.tags || []).length ? `<p class="mn" style="margin-top:1.4cqw">${esc(t.tags.join(' · '))}</p>` : ''}${t.note ? `<p style="margin-top:1.6cqw;white-space:pre-wrap;overflow:hidden;max-height:34cqw">${esc(t.note)}</p>` : ''}</div><div class="mapw">${ctx.mapSVG}</div></div>`;
+  if (pg.k === 'end') return `<div class="pg end"><div class="inner"><h2>${esc(t.title)}</h2><div class="nums"><div><b>${dc || tripDays(t).length || 1}</b><span>${dc === 1 ? 'dia' : 'dias'}</span></div><div><b>${n}</b><span>${n === 1 ? 'foto' : 'fotos'}</span></div></div><span class="mn" style="color:#9bada8">${esc(dateText(t))}</span></div></div>`;
+  const label = pg.date ? `${pg.n && pg.n >= 1 ? `<b>Dia ${pg.n}</b>` : ''}<span class="mn">${esc(dfmtLong.format(parseYmd(pg.date)))}</span>` : `<b>${pg.more ? 'Mais fotos' : ''}</b>`;
+  const hasTxt = !!pg.text, solo = pg.solo;
+  const ph = pg.photos.length ? `<div class="ph ${layoutOf(pg.photos)}">${pg.photos.map(p => `<img src="${esc(ctx.src(p.id))}" alt="${esc(p.caption || '')}">`).join('')}</div>` : '';
+  return `<div class="pg day${hasTxt && !solo ? ' has-txt' : ''}${solo ? ' only-txt' : ''}"><div class="hd">${label}</div><div class="bd">${hasTxt ? `<div class="tx">${esc(pg.text)}</div>` : ''}${ph}</div></div>`;
+}
+function openBook(tid) {
+  const t = tripById(tid); if (!t) return;
+  lastFocus = document.activeElement;
+  bk = { tid, i: 0, pages: bookPages(t), map: mapSVGString(t), el: null };
+  lockScroll(); drawBook();
+}
+function closeBook() {
+  if (!bk) return;
+  bk.el && bk.el.remove(); bk = null; unlockScroll();
+  lastFocus && lastFocus.focus && lastFocus.focus();
+}
+function bkStep(d) { if (!bk) return; bk.i = Math.max(0, Math.min(bk.pages.length - 1, bk.i + d)); drawBook(); }
+function drawBook() {
+  if (!bk) return;
+  const t = tripById(bk.tid);
+  if (!t) { closeBook(); return; }
+  const stage = h('div', { class: 'stagebox' });
+  stage.innerHTML = pageHTML(bk.pages[bk.i], t, { src: blobUrl, mapSVG: bk.map });
+  const el = h('div', { class: 'bk', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Livro: ' + t.title },
+    h('div', { class: 'bar' }, h('span', { class: 'mono' }, `${t.title}  ·  página ${bk.i + 1} de ${bk.pages.length}`),
+      h('div', { class: 'row' },
+        downloads ? h('button', { class: 'btn sm', type: 'button', onclick: () => exportBook(t.id) }, 'Exportar') : null,
+        h('button', { class: 'btn sm', type: 'button', id: 'bk-close', onclick: closeBook }, 'Fechar'))),
+    stage,
+    h('div', { class: 'foot' },
+      h('button', { class: 'btn', type: 'button', disabled: bk.i === 0, onclick: () => bkStep(-1) }, '← Anterior'),
+      h('button', { class: 'btn', type: 'button', disabled: bk.i === bk.pages.length - 1, onclick: () => bkStep(1) }, 'Seguinte →')));
+  bk.el && bk.el.remove();
+  bk.el = el; document.body.append(el);
+  $('#bk-close', el).focus();
+}
+async function toDataUrl(id, max) {
+  const r = await fetch(blobUrl(id));
+  if (!r.ok) throw new Error('foto');
+  const bmp = await createImageBitmap(await r.blob());
+  const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close && bmp.close();
+  return c.toDataURL('image/jpeg', 0.82);
+}
+let exporting = false;
+async function exportBook(tid) {
+  const t = tripById(tid);
+  if (!t || !downloads || exporting) return;
+  exporting = true;
+  try {
+    const pages = bookPages(t), ids = [...new Set(pages.flatMap(p => p.k === 'cover' ? [coverId(t)].filter(Boolean) : (p.photos || []).map(x => x.id)))];
+    const cache = new Map();
+    for (let i = 0; i < ids.length; i++) {
+      setStatus(`A preparar o livro: foto ${i + 1} de ${ids.length}…`);
+      try { cache.set(ids[i], await toDataUrl(ids[i], 1600)); } catch (e) { cache.set(ids[i], ''); }
+    }
+    const ctx = { src: id => cache.get(id) || '', mapSVG: mapSVGString(t) };
+    const css = '@page{size:297mm 210mm;margin:0}*{box-sizing:border-box}body{margin:0;background:#cfd6d3;font-family:"Source Sans 3",system-ui,sans-serif;padding:24px 0}.note{max-width:880px;margin:0 auto 20px;padding:0 16px;font-size:14px;color:#33413d}.pg{width:min(100%,1100px);margin:0 auto 24px}@media print{body{background:#fff;padding:0}.note{display:none}.pg{width:297mm;height:210mm;margin:0;box-shadow:none;break-after:page;page-break-after:always}}';
+    const html = `<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(t.title)}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Source+Sans+3:wght@400;600&family=DM+Mono:wght@400;500&display=swap"><style>${BOOK_CSS}${css}</style></head><body><p class="note">Livro de viagem: ${esc(t.title)}. Para obter um PDF ou imprimir, usa Imprimir no navegador e escolhe "Guardar como PDF" com margens a zero e gráficos de fundo ativos.</p>${pages.map(p => pageHTML(p, t, ctx)).join('\n')}</body></html>`;
+    setStatus('A preparar o ficheiro…');
+    await downloads.save({ filename: slug(t.title) + '-livro.html', data: new Blob([html], { type: 'text/html' }) });
+    setStatus('Livro guardado.', 3000);
+  } catch (e) {
+    setStatus(e && e.code === 'declined' ? null : 'Não foi possível guardar o livro.', 4000);
+  } finally { exporting = false; }
+}
+
+/* ---------- teclado ---------- */
+document.addEventListener('keydown', e => {
+  const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+  if (e.key === 'Escape') { if (modal) { if (!uploading) closeModal(); } else if (bk) closeBook(); else if (lb) closeLightbox(); }
+  else if (!modal && !typing) {
+    if (lb) { if (e.key === 'ArrowLeft') lbStep(-1); else if (e.key === 'ArrowRight') lbStep(1); }
+    else if (bk) { if (e.key === 'ArrowLeft') bkStep(-1); else if (e.key === 'ArrowRight') bkStep(1); }
+  }
+});
+
+/* ---------- arranque ---------- */
+async function init() {
+  try { ui.discreet = !!localStorage.getItem('album-discreto'); } catch (e) { /* sem armazenamento */ }
+  document.body.classList.toggle('discreet', ui.discreet);
+  applyHash();
+  const api = window.claude;
+  const slowTimer = setTimeout(() => { if (!loaded) { slow = true; render(); } }, 10000);
+  try { db = api && api.use ? await api.use('db') : null; } catch (e) { db = null; }
+  if (!db) { clearTimeout(slowTimer); noDb = true; loaded = true; render(); return; }
+
+  Promise.all([
+    api.use('user').catch(() => null),
+    api.use('assets').catch(() => null),
+    api.use('downloads').catch(() => null)
+  ]).then(([user, a, d]) => {
+    assets = a || null; downloads = d || null;
+    canWrite = user ? !!user.canEdit() : !!assets;
+    render();
+  });
+
+  db.collection('trips').onSnapshot(snap => {
+    clearTimeout(slowTimer); slow = false; loadError = false;
+    const datas = snap.docs.map(d => d.data()), ids = snap.docs.map(d => d.id);
+    const same = loaded && datas.length === lastDatas.length && datas.every((x, i) => x === lastDatas[i]) && ids.every((x, i) => x === lastIds[i]);
+    lastDatas = datas; lastIds = ids;
+    trips = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const first = !loaded; loaded = true;
+    if (first) { const ys = trips.map(t => +(t.start || '').slice(0, 4)).filter(Boolean); if (ys.length) ui.year = Math.max(...ys); }
+    if (!same || first) { render(); if (lb) drawLightbox(); if (bk) drawBook(); }
+  }, () => { clearTimeout(slowTimer); loadError = true; loaded = true; render(); });
+}
+init();
+
+</script>

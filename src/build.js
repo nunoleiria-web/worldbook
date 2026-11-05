@@ -1,0 +1,12 @@
+const fs = require('fs'), path = require('path');
+const d = __dirname, out = process.argv[2];
+const rd = f => fs.readFileSync(path.join(d, f), 'utf8');
+const css = rd('style.css');
+const m = css.match(/\/\*BOOK-START\*\/([\s\S]*?)\/\*BOOK-END\*\//);
+if (!m) throw new Error('BOOK markers');
+const js = rd('world.js') + '\n' + rd('lib.js') + '\nconst BOOK_CSS = ' + JSON.stringify(m[1]) + ';\n' + rd('app.js');
+const safe = js.replace(/<\/script/gi, '<\\/script');
+fs.writeFileSync(path.join(d, 'bundle.js'), safe);
+const html = rd('template.html').replace('/*CSS*/', () => css).replace('/*JS*/', () => safe);
+fs.writeFileSync(out, html);
+console.log('ok', html.length);
