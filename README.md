@@ -2,6 +2,15 @@
 
 Álbum de viagens: mapa-múndi com pinos e percurso, diário dia a dia, importação de fotos (data e GPS lidos do EXIF), calendário anual, vista de fotos, "Neste dia", modo discreto e livro de viagem exportável em HTML.
 
+## Funcionalidades
+- Mapa-múndi com pinos, percurso entre viagens e países visitados
+- Diário dia a dia, calendário do ano, vista de fotos, pesquisa e "Neste dia"
+- Importar fotos: agrupa por data, lê data/hora e GPS (EXIF) e propõe viagens
+- Importar percurso GPS (JSON da Linha cronológica do Google Maps, GPX, KML, GeoJSON) e associar às fotos pela hora
+- Livro de viagem em HTML e PDF
+- Cópia de segurança e restauro (versão pública)
+- Modo discreto (desfoca fotos e textos)
+
 ## Estrutura
 - `src/` código-fonte (`world.js` mapa e países, `lib.js` funções puras, `app.js` interface, `style.css`, `template.html`, `build.js`)
 - `dist/album-de-viagens.html` página já montada
