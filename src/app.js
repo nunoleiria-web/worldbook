@@ -135,11 +135,70 @@ function backupBtns() {
   const wb = window.__worldbook;
   if (!wb || !wb.exportAll) return null;
   return h('span', { class: 'row' },
+    h('small', { class: 'mono', style: 'flex-basis:100%;color:var(--ink-2);line-height:1.4;max-width:260px;padding:2px 8px 6px' }, 'Nesta versão as fotos ficam só neste aparelho. Guarda uma cópia e importa-a na versão Claude para as veres em todo o lado.'),
     h('button', { class: 'btn quiet', type: 'button', onclick: async () => {
       try { setStatus('A preparar a cópia de segurança…'); const blob = await wb.exportAll(); await downloads.save({ filename: 'worldbook-copia-' + localYmd(new Date()) + '.json', data: blob }); setStatus('Cópia de segurança guardada.', 3500); }
       catch (e) { setStatus('Não foi possível criar a cópia de segurança.', 4000); }
     } }, 'Guardar cópia'),
     h('button', { class: 'btn quiet', type: 'button', onclick: () => $('#restore-input').click() }, 'Restaurar'));
+}
+/* ---------- trazer para a nuvem a cópia feita noutro aparelho (versão independente) ---------- */
+function cloudImportBtn() {
+  if ((window.__worldbook && window.__worldbook.exportAll) || !canWrite || !assets || !db) return null;
+  return h('button', { class: 'btn quiet', type: 'button', title: 'Junta a este álbum as viagens e fotos de uma cópia guardada no site do GitHub', onclick: () => {
+    const inp = h('input', { type: 'file', accept: 'application/json,.json', hidden: '' });
+    inp.addEventListener('change', () => { const f = inp.files[0]; inp.remove(); if (f) importBackup(f); });
+    document.body.append(inp); inp.click();
+  } }, 'Importar cópia de outro aparelho');
+}
+function dataToBlob(du) {
+  const i = du.indexOf(','), meta = du.slice(5, i), b64 = meta.includes(';base64');
+  const raw = b64 ? atob(du.slice(i + 1)) : decodeURIComponent(du.slice(i + 1));
+  const u = new Uint8Array(raw.length); for (let j = 0; j < raw.length; j++) u[j] = raw.charCodeAt(j);
+  return new Blob([u], { type: meta.split(';')[0] || 'application/octet-stream' });
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function importBackup(file) {
+  if (uploading) return;
+  uploading = true;
+  try {
+    setStatus('A ler a cópia…');
+    let data = null; try { data = JSON.parse(await file.text()); } catch (e) { /* inválido */ }
+    if (!data || data.app !== 'worldbook' || !Array.isArray(data.docs) || !Array.isArray(data.blobs)) { setStatus('Este ficheiro não parece uma cópia do álbum.', 5000); return; }
+    const have = new Set(trips.map(t => t.src).filter(Boolean));
+    const todo = data.docs.filter(([k, v]) => typeof k === 'string' && k.startsWith('trips/') && v && typeof v === 'object' && !have.has(k));
+    if (!todo.length) { setStatus('Esta cópia já está no álbum.', 5000); return; }
+    const blobs = new Map(data.blobs.filter(x => Array.isArray(x) && typeof x[1] === 'string'));
+    const used = new Set();
+    const walk = o => { if (typeof o === 'string') { if (blobs.has(o)) used.add(o); } else if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') for (const k in o) { if (blobs.has(k)) used.add(k); walk(o[k]); } };
+    todo.forEach(([, v]) => walk(v));
+    const ids = [...used], map = new Map(); let failMsg = '';
+    for (let i = 0; i < ids.length; i++) {
+      setStatus(`A enviar foto ${i + 1} de ${ids.length}…`);
+      let blob; try { blob = dataToBlob(blobs.get(ids[i])); } catch (e) { continue; }
+      for (let tries = 0; tries < 6; tries++) {
+        try { map.set(ids[i], (await assets.upload(blob)).id); break; }
+        catch (e) {
+          if (e && e.code === 'rate_limited' && tries < 5) { setStatus(`A aguardar um momento… (foto ${i + 1} de ${ids.length})`); await sleep(4000 * (tries + 1)); continue; }
+          failMsg = upMsg[e && e.code] || 'Algumas fotos não foram enviadas.'; break;
+        }
+      }
+      if (failMsg && /espaço|quota/i.test(failMsg)) break;
+    }
+    const remap = o => typeof o === 'string' ? (map.get(o) || o)
+      : Array.isArray(o) ? o.map(remap)
+      : (o && typeof o === 'object') ? Object.fromEntries(Object.entries(o).map(([k, v]) => [map.get(k) || k, remap(v)])) : o;
+    let nT = 0, nP = 0;
+    for (const [k, v] of todo) {
+      const kept = (v.photos || []).filter(p => p && map.has(p.id)).map(p => { const q = { ...p }; if (q.th && !map.has(q.th)) delete q.th; return q; });
+      const doc = remap({ ...v, photos: kept });
+      if (doc.photos.length && !doc.photos.some(p => p.id === doc.cover)) doc.cover = doc.photos[0].id;
+      if (!doc.photos.length) doc.cover = null;
+      doc.src = k;
+      try { await db.collection('trips').add(doc); nT++; nP += doc.photos.length; } catch (e) { failMsg = failMsg || 'Uma viagem não foi guardada.'; }
+    }
+    setStatus(`Importadas ${pl(nT, 'viagem', 'viagens')} com ${pl(nP, 'foto', 'fotos')}.` + (failMsg ? ' ' + failMsg : ''), 8000);
+  } finally { uploading = false; }
 }
 const restoreInput = $('#restore-input');
 if (restoreInput) restoreInput.addEventListener('change', async () => {
@@ -171,6 +230,7 @@ function renderHome() {
       (() => { const b = importBtn(); if (b) b.classList.add('only-m'); return b; })(),
       themeSwitch(),
       backupBtns(),
+      cloudImportBtn(),
       h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': ui.discreet ? 'true' : 'false', title: 'Desfoca fotos e textos para mostrares o ecrã a outras pessoas', onclick: toggleDiscreet }, ui.discreet ? 'Desligar modo discreto' : 'Modo discreto')));
   const brand = h('button', { class: 'hm-brand', type: 'button', onclick: () => setTab('mapa') }, h('span', { class: 'mk', 'aria-hidden': 'true' }), h('span', {}, 'Álbum de viagens'));
   brand.querySelector('.mk').innerHTML = BRAND_SVG;
