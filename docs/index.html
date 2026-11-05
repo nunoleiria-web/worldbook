@@ -553,10 +553,6 @@ h1, h2, h3, b.num { font-synthesis: none; }
 .card .cmeta .mono { margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.7rem; }
 .card .heart { z-index: 2; }
 .card .cover.ph { align-items: flex-start; }
-@media (min-width: 900px) {
-  .grid > .card:first-child:nth-last-child(n+2) { grid-column: span 2; }
-  .grid > .card:first-child:nth-last-child(n+2) .cover { aspect-ratio: 16 / 10; }
-}
 
 /* ===== Viagem: ecrã dividido (mapa | diário) ===== */
 .wrap.full { max-width: none; padding: 0; }
@@ -723,12 +719,6 @@ h1, h2, h3, b.num { font-synthesis: none; }
 .hm-mapwrap .nolocs { margin: 0; }
 .hm-mapwrap > .hm-body { padding-top: 18px; padding-bottom: 40px; }
 
-/* viagens: cartão de destaque */
-.years .grid > .card:first-child { grid-column: 1 / -1; }
-.years section:first-child .grid > .card:first-child .cover { aspect-ratio: 21 / 9; }
-.years section:first-child .grid > .card:first-child .ov { padding: clamp(22px, 4vw, 44px); }
-.years section:first-child .grid > .card:first-child .ov h3 { font-size: clamp(2.6rem, 6vw, 5rem); }
-.years section:not(:first-child) .grid > .card:first-child { grid-column: auto; }
 .year { font: 500 0.78rem var(--mono); letter-spacing: 0.2em; }
 .bar .input { border-radius: 999px; padding-left: 18px; background: var(--surface); }
 
@@ -746,7 +736,6 @@ h1, h2, h3, b.num { font-synthesis: none; }
   .hm-stripwrap { position: relative; order: 3; background: none; padding: 16px 0 6px; }
   .hm-strip { padding-left: 16px; padding-right: 16px; }
   .pp-big b { font-size: 4.2rem; }
-  .years section:first-child .grid > .card:first-child .cover { aspect-ratio: 4 / 5; }
 }
 .hm-menu .only-m { display: none; }
 @media (max-width: 900px) { .hm-menu .only-m { display: inline-flex; } }
@@ -755,6 +744,69 @@ h1, h2, h3, b.num { font-synthesis: none; }
 .theme-sw > div { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--hover); }
 .theme-sw button { flex: 1; min-height: 34px; border: 0; border-radius: 8px; background: none; cursor: pointer; font: 600 0.8rem var(--body); color: var(--ink-2); }
 .theme-sw button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / 0.15); }
+
+/* ===== Início: mapa limpo, resumo e viagens recentes ===== */
+.hm-home .hm-hero { height: clamp(420px, 62vh, 760px); min-height: 0; border-bottom: 1px solid var(--line); display: block; overflow: hidden; }
+.hm-home .gmap.hero-map { position: absolute; inset: 0; height: 100%; min-height: 0; }
+.map-chip { position: absolute; z-index: 3; top: 18px; left: max(18px, env(safe-area-inset-left, 0px)); display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px 8px 11px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--line); font: 600 0.82rem var(--body); color: var(--ink); cursor: pointer; box-shadow: 0 8px 20px -12px rgb(0 0 0 / 0.35); }
+.map-chip input { accent-color: var(--accent); margin: 0; width: 15px; height: 15px; }
+.hm-home-body { padding-top: 0; }
+.pf { position: relative; z-index: 4; margin-top: -72px; display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.7fr); gap: 24px 48px; align-items: end; padding: 30px 36px 32px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 34px 70px -44px rgb(0 0 0 / 0.5); }
+.pf .kick { margin: 0; font: 500 0.7rem var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.pf-big { display: flex; align-items: flex-end; gap: 14px; margin: 12px 0 18px; }
+.pf-big b { font: 400 clamp(4.4rem, 7.5vw, 6.6rem)/0.78 var(--display); letter-spacing: -0.04em; }
+.pf-big span { display: grid; gap: 8px; font: 400 1.7rem/1 var(--display); padding-bottom: 2px; }
+.pf-big small { font: 500 0.7rem var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.pf-stats { margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.pf-stats div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 10px; padding: 2px 0 2px 22px; border-left: 1px solid var(--line); min-width: 0; }
+.pf-stats dd { margin: 0; font: 400 clamp(2rem, 3.1vw, 2.9rem)/1 var(--display); letter-spacing: -0.02em; white-space: nowrap; }
+.pf-stats dt { font: 500 0.64rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.pf-flags { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-flags li { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px 5px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font: 500 0.84rem var(--body); }
+.hm-sec { margin-top: 64px; }
+.sec-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.sec-h h2 { margin: 0; font: 400 clamp(2rem, 3.4vw, 2.8rem)/1 var(--display); letter-spacing: -0.02em; }
+.sec-h .mono { margin: 0; }
+.link-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 0; cursor: pointer; font: 600 0.92rem var(--body); color: var(--accent); }
+.link-btn svg { width: 18px; height: 18px; transition: transform 0.2s; }
+.link-btn:hover svg { transform: translateX(3px); }
+.mem-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+.mem-row button { flex: none; width: 168px; aspect-ratio: 1; border: 0; padding: 0; border-radius: 14px; overflow: hidden; cursor: pointer; background: var(--hover); }
+.mem-row img { width: 100%; height: 100%; object-fit: cover; }
+.hm-home .nolocs { margin: 40px 0 0; color: var(--ink-2); }
+.hm-home .nolocs button { border: 0; background: none; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; }
+
+/* cartões de viagem uniformes */
+.grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 40px 28px; }
+.card .cover { aspect-ratio: 4 / 3; border-radius: 16px; }
+.card .ov { padding: 22px 22px 20px; }
+.card .ov h3 { font-size: clamp(1.9rem, 2.3vw, 2.3rem); }
+.card .cmeta .mono { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.cflags { font-size: 0.95rem; letter-spacing: 0.1em; }
+.cal .d { border-radius: 6px; }
+.legend i { border-radius: 4px; }
+
+@media (max-width: 900px) {
+  .hm-home .hm-hero { height: 50vh; min-height: 320px; }
+  .hm-home .gmap.hero-map { position: absolute; height: 100%; }
+  .pf { grid-template-columns: 1fr; margin-top: -40px; padding: 22px 20px 24px; gap: 20px; border-radius: 20px; }
+  .pf-big { margin-bottom: 14px; }
+  .pf-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 20px; }
+  .pf-stats div { padding-left: 14px; }
+  .pf-stats div:nth-child(3n+1) { border-left: 0; padding-left: 0; }
+  .hm-sec { margin-top: 44px; }
+  .mem-row button { width: 128px; }
+  .bar { flex-wrap: wrap; }
+  .bar .search { flex: 1 1 100%; }
+  .bar .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+}
+.chip { white-space: nowrap; flex: none; }
+@media (max-width: 520px) {
+  .months { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
+  .cal { gap: 2px; }
+  .cal .d { font-size: 0.62rem; border-radius: 4px; }
+  .cal .wd { font-size: 0.56rem; }
+}
 
 </style>
 <div class="wrap"><main id="app"></main></div>
@@ -1410,6 +1462,15 @@ function gmCountryAt(lat, lng) {
   }
   return null;
 }
+/* país num ponto, com tolerância para pontos junto à costa */
+function gmCountryNear(lat, lng) {
+  const c = gmCountryAt(lat, lng); if (c) return c;
+  for (const r of [0.04, 0.1, 0.2, 0.4, 0.8]) for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4, q = gmCountryAt(lat + r * Math.sin(a), lng + r * Math.cos(a) / Math.max(0.2, Math.cos(lat * Math.PI / 180)));
+    if (q) return q;
+  }
+  return null;
+}
 /* lugar mais relevante perto de um ponto (nome em português) */
 function gmPlaceNear(lat, lng) {
   gmDecode(); let best = null, bs = Infinity;
@@ -1419,6 +1480,13 @@ function gmPlaceNear(lat, lng) {
     const d = haversineKm(lat, lng, p.lat, p.lng);
     if (d > 45) continue;
     const s = d / (0.6 + p.pop / 30 - 0.2) - (p.cap ? 3 : 0);
+    if (s < bs) { bs = s; best = p; }
+  }
+  if (!best) for (const p of GM.places) {
+    if (Math.abs(p.lat - lat) > 1.4 || Math.abs(p.lng - lng) > 2.8) continue;
+    const d = haversineKm(lat, lng, p.lat, p.lng);
+    if (d > 130) continue;
+    const s = d / (0.8 + p.pop / 40);
     if (s < bs) { bs = s; best = p; }
   }
   return best ? Object.assign({ d: gmDistKm(lat, lng, best) }, best) : null;
@@ -1610,7 +1678,7 @@ function gmDraw(ctx, W, H, v, o, pal, hit) {
     }
   }
   /* cidades */
-  if (z >= 2.6 && !o.noCities) {
+  if (z >= (o.citiesMinZ || 2.6) && !o.noCities) {
     const maxSr = z < 3.4 ? 1 : z < 4.2 ? 2 : z < 5.2 ? 3 : z < 6.2 ? 4 : z < 7.2 ? 6 : z < 8.6 ? 7 : 9;
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; let cnt = 0;
     for (const p of D.places) {
@@ -1645,6 +1713,7 @@ function gmDraw(ctx, W, H, v, o, pal, hit) {
 function gmPrep(o) {
   const pts = o.routePoints && o.routePoints.length > 1 ? o.routePoints : null;
   o._route = pts ? gmRouteGeom(pts) : [];
+  if (o.routes) for (const r of o.routes) if (r && r.length > 1) o._route.push(...gmRouteGeom(r));
   o._dots = (o.dots || []).filter(d => Number.isFinite(d.lat) && Number.isFinite(d.lng)).map(d => [gmX(d.lng), gmY(d.lat)]);
   o._marks = (o.marks || []).map(m => Object.assign({}, m, { x: gmX(m.lng), y: gmY(m.lat) }));
   return o;
@@ -1773,7 +1842,7 @@ function tripStops(t) {
   const merged = [];
   for (const c of keep) { const m = merged[merged.length - 1]; if (m && haversineKm(m.lat, m.lng, c.lat, c.lng) <= 9) { m.items.push(...c.items); m.lat = m.items.reduce((s, q) => s + q.lat, 0) / m.items.length; m.lng = m.items.reduce((s, q) => s + q.lng, 0) / m.items.length; } else merged.push(c); }
   const stops = merged.map((c, i) => {
-    const pl = gmPlaceNear(c.lat, c.lng), code = gmCountryAt(c.lat, c.lng) || (nearestCountry(c.lat, c.lng) || {}).code || '';
+    const pl = gmPlaceNear(c.lat, c.lng), code = gmCountryNear(c.lat, c.lng) || (nearestCountry(c.lat, c.lng) || {}).code || '';
     const name = pl ? (pl.d <= 15 ? pl.n : 'Perto de ' + pl.n) : (COUNTRY_BY_CODE[code] ? COUNTRY_BY_CODE[code].name : 'Local');
     const dates = c.items.map(q => q.date).filter(Boolean).sort();
     return { id: 's' + (i + 1), n: i + 1, lat: c.lat, lng: c.lng, name, code, d0: dates[0] || '', d1: dates[dates.length - 1] || '', photos: [...new Set(c.items.map(q => q.pid).filter(Boolean))], days: [...new Set(dates)], dc: dates.reduce((m, d) => (m[d] = (m[d] || 0) + 1, m), {}) };
@@ -2311,11 +2380,11 @@ function coverEl(t) {
 function card(t) {
   const n = (t.photos || []).length, dc = tripDayCount(t);
   const meta = [dateText(t), dc > 1 ? pl(dc, 'dia', 'dias') : '', n ? pl(n, 'foto', 'fotos') : ''].filter(Boolean).join('  ·  ');
-  const cv = coverEl(t);
+  const cv = coverEl(t), fl = tripFlags(t);
   cv.append(h('div', { class: 'ov' }, h('h3', {}, t.title), placeText(t) ? h('p', { class: 'place' }, placeText(t)) : null));
   return h('button', { class: 'card', type: 'button', 'aria-label': 'Abrir ' + t.title, onclick: () => go(t.id) },
     cv,
-    h('div', { class: 'cmeta' }, meta ? h('p', { class: 'mono' }, meta) : null,
+    h('div', { class: 'cmeta' }, h('p', { class: 'mono' }, fl.length ? h('span', { class: 'cflags', title: fl.map(countryNameOf).join(', ') }, fl.slice(0, 5).map(flagOf).join(' ')) : null, meta),
       (t.tags || []).length ? h('div', { class: 'tagline' }, t.tags.map(x => h('span', {}, x))) : null));
 }
 function newTripBtn() {
@@ -2405,7 +2474,7 @@ if (restoreInput) restoreInput.addEventListener('change', async () => {
 });
 
 /* ---------- início ---------- */
-const TABS = [['mapa', 'Mapa'], ['viagens', 'Viagens'], ['ano', 'Ano'], ['fotos', 'Fotos']];
+const TABS = [['mapa', 'Início'], ['viagens', 'Viagens'], ['ano', 'Ano'], ['fotos', 'Fotos']];
 const BRAND_SVG = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="16" cy="16" r="13"/><path d="M3 16h26M16 3c-4.2 4-6 8.3-6 13s1.8 9 6 13M16 3c4.2 4 6 8.3 6 13s-1.8 9-6 13" opacity=".55"/><path d="M8.5 21.5c3-2.6 5.6-3.4 8-2.6 2.4.8 4.4.3 7-2.4" stroke-dasharray="1.6 2.2" stroke-linecap="round"/><circle cx="23.5" cy="16.5" r="2" fill="currentColor" stroke="none"/></svg>';
 function worldStats() {
   const codes = new Set(), conts = new Set(); let km = 0, photos = 0, days = 0;
@@ -2463,51 +2532,55 @@ function toggleDiscreet() {
   render();
 }
 
-/* separador Mapa: mapa a toda a largura com passaporte e faixa de viagens */
+/* separador Início: mapa limpo, resumo do mundo e viagens recentes */
+const TRIP_COLORS = ['#B4472A', '#5E7A3A', '#C08A2E', '#2F6E73', '#7B3F61', '#4A5A78', '#9A5B2F', '#3F7F5A'];
+const tripColor = t => TRIP_COLORS[hueOf(t.title || t.id || '') % TRIP_COLORS.length];
+function tripFlags(t) { const inf = tripPoint(t) ? tripStops(t) : null; const codes = inf ? inf.countries : []; if (!codes.length) { const c = findCountry(t.country); if (c) codes.push(c.code); } return codes; }
 function renderMapTab() {
-  const root = h('div', { class: 'hm-mapwrap' });
-  const located = trips.map(t => ({ t, pt: tripPoint(t) })).filter(x => x.pt).sort((a, b) => (a.t.start || a.t.createdAt || '').localeCompare(b.t.start || b.t.createdAt || ''));
+  const root = h('div', { class: 'hm-home' });
+  const located = trips.map(t => ({ t, pt: tripPoint(t) })).filter(x => x.pt);
   const without = trips.filter(t => !tripPoint(t));
-  if (ui.sel && !tripById(ui.sel)) ui.sel = null;
   const W = worldStats();
-  const marks = located.map(x => { const c = (x.t.photos || []).find(p => p.id === coverId(x.t)); return { id: x.t.id, lat: x.pt.lat, lng: x.pt.lng, label: x.t.title, r: 20, sel: ui.sel === x.t.id, photo: c && !ui.discreet ? blobUrl(c.th || c.id) : null }; });
-  const routePts = [];
-  if (ui.route) for (const x of located) { const inf = tripStops(x.t); if (inf.routePts.length > 1) routePts.push(...inf.routePts); else routePts.push({ lat: x.pt.lat, lng: x.pt.lng }); }
-  const m = createGeoMap({ marks, routePoints: ui.route && routePts.length > 1 ? routePts : null, visited: new Set(W.codes), fitPoints: marks.length ? marks.concat(routePts) : [], label: 'Mapa das viagens', wheel: 'ctrl', pad: 120, maxZ: 6, inset: (w, hh) => w >= 900 ? [420, 150] : [0, 0],
-    view: mapState.v || null, onView: v => { mapState.v = { cx: v.cx, cy: v.cy, z: v.z }; }, onPin: id => { ui.sel = ui.sel === id ? null : id; render(); } });
+  const marks = located.map(x => { const c = (x.t.photos || []).find(p => p.id === coverId(x.t)); return { id: x.t.id, lat: x.pt.lat, lng: x.pt.lng, label: x.t.title, r: 20, photo: c && !ui.discreet ? blobUrl(c.th || c.id) : null }; });
+  const routes = ui.route ? located.map(x => tripStops(x.t).routePts).filter(r => r.length > 1) : [];
+  const fit = marks.concat(...routes);
+  const m = createGeoMap({ marks, routes, visited: new Set(W.codes), fitPoints: fit, label: 'Mapa das viagens', wheel: 'ctrl', pad: 60, inset: () => [0, 70], maxZ: 5, citiesMinZ: 4.6,
+    view: mapState.v || null, onView: v => { mapState.v = { cx: v.cx, cy: v.cy, z: v.z }; }, onPin: id => go(id) });
   m.el.classList.add('hero-map');
+  const toggle = h('label', { class: 'map-chip' }, h('input', { type: 'checkbox', checked: ui.route, onchange: e => { ui.route = e.target.checked; render(); } }), 'Percursos');
+  root.append(h('section', { class: 'hm-hero' }, m.el, toggle));
+
   const pct = (W.codes.length / 195 * 100);
-  const passport = h('section', { class: 'passport', 'aria-label': 'Resumo' },
-    h('p', { class: 'kick' }, 'O meu mundo'),
-    h('div', { class: 'pp-big' }, h('b', {}, String(W.codes.length)), h('span', {}, W.codes.length === 1 ? 'país' : 'países', h('small', {}, (pct < 1 ? pct.toFixed(1) : Math.round(pct)).toString().replace('.', ',') + ' % do mundo'))),
-    h('div', { class: 'pp-bar', role: 'img', 'aria-label': 'Percentagem do mundo visitada' }, h('i', { style: `width:${Math.max(1.5, Math.min(100, pct))}%` })),
-    h('dl', { class: 'pp-grid' },
-      [[trips.length, trips.length === 1 ? 'viagem' : 'viagens'], [W.days, 'dias fora'], [bkNum(W.km), 'km'], [W.photos, 'fotos'], [W.conts, W.conts === 1 ? 'continente' : 'continentes']]
-        .map(([v, l]) => h('div', {}, h('dt', {}, l), h('dd', {}, String(v))))),
-    W.codes.length ? h('ul', { class: 'pp-flags' }, W.codes.sort((a, b) => countryNameOf(a).localeCompare(countryNameOf(b), 'pt')).map(c => h('li', { title: countryNameOf(c) }, h('span', { class: 'fl', 'aria-hidden': 'true' }, flagOf(c)), countryNameOf(c)))) : null,
-    h('label', { class: 'pp-toggle' }, h('input', { type: 'checkbox', checked: ui.route, onchange: e => { ui.route = e.target.checked; render(); } }), 'Mostrar percursos'));
+  const pctTx = (pct < 1 ? pct.toFixed(1) : Math.round(pct)).toString().replace('.', ',') + ' % do mundo';
+  const body = h('div', { class: 'hm-body hm-home-body' });
+  body.append(h('section', { class: 'pf', 'aria-label': 'O meu mundo' },
+    h('div', { class: 'pf-world' },
+      h('p', { class: 'kick' }, 'O meu mundo'),
+      h('div', { class: 'pf-big' }, h('b', {}, String(W.codes.length)), h('span', {}, W.codes.length === 1 ? 'país visitado' : 'países visitados', h('small', {}, pctTx))),
+      h('div', { class: 'pp-bar', role: 'img', 'aria-label': pctTx }, h('i', { style: `width:${Math.max(1.5, Math.min(100, pct))}%` }))),
+    h('dl', { class: 'pf-stats' },
+      [[trips.length, trips.length === 1 ? 'viagem' : 'viagens'], [W.days, 'dias fora'], [bkNum(Math.round(W.km)), 'km percorridos'], [bkNum(W.photos), 'fotos'], [W.conts, W.conts === 1 ? 'continente' : 'continentes']]
+        .map(([v, l]) => h('div', {}, h('dt', {}, l), h('dd', {}, String(v)))))));
+  if (W.codes.length) body.append(h('ul', { class: 'pf-flags', 'aria-label': 'Países visitados' }, W.codes.slice().sort((a, b) => countryNameOf(a).localeCompare(countryNameOf(b), 'pt')).map(c => h('li', {}, h('span', { class: 'fl', 'aria-hidden': 'true' }, flagOf(c)), countryNameOf(c)))));
+
+  const mem = memories();
+  if (mem.length) {
+    const list = mem.slice(0, 8).map(x => ({ tid: x.t.id, pid: x.p.id }));
+    body.append(h('section', { class: 'hm-sec' },
+      h('div', { class: 'sec-h' }, h('h2', {}, 'Neste dia'), h('p', { class: 'mono' }, [...new Set(mem.map(x => `há ${pl(x.years, 'ano', 'anos')} · ${x.t.title}`))].slice(0, 2).join('  ·  '))),
+      h('div', { class: 'mem-row' }, mem.slice(0, 8).map((x, i) => h('button', { type: 'button', 'aria-label': 'Abrir foto de ' + x.t.title, onclick: () => openLightbox(list, i) }, h('img', { src: blobUrl(x.p.th || x.p.id), alt: '', loading: 'lazy' }))))));
+  }
   const recent = trips.slice().sort((a, b) => (b.start || b.createdAt || '').localeCompare(a.start || a.createdAt || ''));
-  const strip = h('div', { class: 'hm-strip', role: 'list', 'aria-label': 'Viagens' }, recent.map(t => {
-    const cid = coverId(t), sel = ui.sel === t.id, inf = tripPoint(t) ? tripStops(t) : null;
-    return h('div', { class: 'st-card' + (sel ? ' on' : ''), role: 'listitem' },
-      h('button', { class: 'st-main', type: 'button', onclick: () => { if (sel) go(t.id); else { ui.sel = t.id; render(); } } },
-        cid && !ui.discreet ? h('img', { src: thumbOf(t, cid), alt: '', loading: 'lazy' }) : h('span', { class: 'ph', style: `background:hsl(${hueOf(t.title)} 40% 42%)` }),
-        h('span', { class: 'st-tx' }, h('b', {}, t.title), h('small', {}, [dateText(t), inf && inf.countries.length ? inf.countries.map(flagOf).join(' ') : ''].filter(Boolean).join('  ')))),
-      sel ? h('button', { class: 'st-open', type: 'button', onclick: () => go(t.id) }, 'Abrir viagem →') : null);
-  }));
-  root.append(h('section', { class: 'hm-hero' }, m.el, passport, h('div', { class: 'hm-stripwrap' }, strip)));
-  if (without.length) root.append(h('div', { class: 'hm-body' }, h('p', { class: 'nolocs' }, pl(without.length, 'viagem sem localização', 'viagens sem localização') + ': ',
+  body.append(h('section', { class: 'hm-sec' },
+    h('div', { class: 'sec-h' }, h('h2', {}, 'Viagens recentes'), recent.length > 6 ? h('button', { class: 'link-btn', type: 'button', onclick: () => setTab('viagens') }, 'Ver as ' + recent.length + ' viagens', ico('arrow')) : null),
+    h('div', { class: 'grid' }, recent.slice(0, 6).map(card))));
+  if (without.length) body.append(h('p', { class: 'nolocs' }, pl(without.length, 'viagem sem localização', 'viagens sem localização') + ' no mapa: ',
     without.map((t, i) => [i ? ', ' : '', h('button', { type: 'button', onclick: () => go(t.id) }, t.title)]),
-    canWrite ? '. Edita a viagem e indica o país ou marca o sítio no mapa.' : '.')));
+    canWrite ? '. Abre a viagem e indica o país, ou junta fotos com localização.' : '.'));
+  root.append(body);
   return root;
 }
 
-/* separador Viagens */
-function matchTrip(t, q) {
-  if (!q) return true;
-  const hay = fold([t.title, t.place, t.country, t.note, (t.tags || []).join(' '), Object.values(t.days || {}).join(' '), (t.photos || []).map(p => p.caption).join(' ')].join(' '));
-  return q.split(/\s+/).every(w => hay.includes(w));
-}
 function memories() {
   const now = new Date(), md = pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()), y = now.getFullYear();
   const out = [];
@@ -2600,7 +2673,7 @@ function renderYearTab() {
     for (let i = 0; i < off; i++) cal.append(h('span'));
     for (let d = 1; d <= n; d++) {
       const key = `${Y}-${pad2(m + 1)}-${pad2(d)}`, t = dayMap.get(key);
-      cal.append(t ? h('button', { class: 'd', type: 'button', title: t.title, 'aria-label': `${d} de ${MONTHS_LONG[m]}: ${t.title}`, style: `background:hsl(${hueOf(t.title)} 55% 38%)`, onclick: () => go(t.id) }, String(d))
+      cal.append(t ? h('button', { class: 'd', type: 'button', title: t.title, 'aria-label': `${d} de ${MONTHS_LONG[m]}: ${t.title}`, style: `background:${tripColor(t)}`, onclick: () => go(t.id) }, String(d))
         : h('span', { class: 'd' }, String(d)));
     }
     months.append(h('div', { class: 'month' }, h('h3', {}, MONTHS_LONG[m]), cal));
@@ -2608,7 +2681,7 @@ function renderYearTab() {
   root.append(months);
   const list = trips.filter(t => inYear.has(t.id)).sort((a, b) => a.start.localeCompare(b.start));
   if (list.length) root.append(h('div', { class: 'legend' }, list.map(t => h('button', { type: 'button', onclick: () => go(t.id) },
-    h('i', { style: `background:hsl(${hueOf(t.title)} 55% 38%)` }), h('b', {}, t.title), h('span', { class: 'mono' }, [dateText(t), placeText(t)].filter(Boolean).join('  ·  '))))));
+    h('i', { style: `background:${tripColor(t)}` }), h('b', {}, t.title), h('span', { class: 'mono' }, [dateText(t), placeText(t)].filter(Boolean).join('  ·  '))))));
   return root;
 }
 
@@ -2639,7 +2712,7 @@ function renderPhotosTab() {
   for (const x of all) { const k = monthKey(x.date); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); }
   for (const [k, items] of groups) {
     root.append(h('h2', { class: 'month-h' }, monthLabel(k)));
-    root.append(h('div', { class: 'wall' }, items.map(x => photoFig(x.t, x.p, () => openLightbox(list, idx.get(x.p.id))))));
+    root.append(justWall(items.map(x => photoFig(x.t, x.p, () => openLightbox(list, idx.get(x.p.id))))));
   }
   return root;
 }
@@ -2657,6 +2730,7 @@ const flagOf = code => /^[A-Z]{2}$/.test(code || '') ? String.fromCodePoint(...[
 const countryNameOf = code => (COUNTRY_BY_CODE[code] || {}).name || code;
 const ICO = {
   book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Z"/><path d="M12 6.5v13"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>',
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z"/></svg>',

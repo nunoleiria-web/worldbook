@@ -548,10 +548,6 @@ h1, h2, h3, b.num { font-synthesis: none; }
 .card .cmeta .mono { margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.7rem; }
 .card .heart { z-index: 2; }
 .card .cover.ph { align-items: flex-start; }
-@media (min-width: 900px) {
-  .grid > .card:first-child:nth-last-child(n+2) { grid-column: span 2; }
-  .grid > .card:first-child:nth-last-child(n+2) .cover { aspect-ratio: 16 / 10; }
-}
 
 /* ===== Viagem: ecrã dividido (mapa | diário) ===== */
 .wrap.full { max-width: none; padding: 0; }
@@ -718,12 +714,6 @@ h1, h2, h3, b.num { font-synthesis: none; }
 .hm-mapwrap .nolocs { margin: 0; }
 .hm-mapwrap > .hm-body { padding-top: 18px; padding-bottom: 40px; }
 
-/* viagens: cartão de destaque */
-.years .grid > .card:first-child { grid-column: 1 / -1; }
-.years section:first-child .grid > .card:first-child .cover { aspect-ratio: 21 / 9; }
-.years section:first-child .grid > .card:first-child .ov { padding: clamp(22px, 4vw, 44px); }
-.years section:first-child .grid > .card:first-child .ov h3 { font-size: clamp(2.6rem, 6vw, 5rem); }
-.years section:not(:first-child) .grid > .card:first-child { grid-column: auto; }
 .year { font: 500 0.78rem var(--mono); letter-spacing: 0.2em; }
 .bar .input { border-radius: 999px; padding-left: 18px; background: var(--surface); }
 
@@ -741,7 +731,6 @@ h1, h2, h3, b.num { font-synthesis: none; }
   .hm-stripwrap { position: relative; order: 3; background: none; padding: 16px 0 6px; }
   .hm-strip { padding-left: 16px; padding-right: 16px; }
   .pp-big b { font-size: 4.2rem; }
-  .years section:first-child .grid > .card:first-child .cover { aspect-ratio: 4 / 5; }
 }
 .hm-menu .only-m { display: none; }
 @media (max-width: 900px) { .hm-menu .only-m { display: inline-flex; } }
@@ -750,3 +739,66 @@ h1, h2, h3, b.num { font-synthesis: none; }
 .theme-sw > div { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--hover); }
 .theme-sw button { flex: 1; min-height: 34px; border: 0; border-radius: 8px; background: none; cursor: pointer; font: 600 0.8rem var(--body); color: var(--ink-2); }
 .theme-sw button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / 0.15); }
+
+/* ===== Início: mapa limpo, resumo e viagens recentes ===== */
+.hm-home .hm-hero { height: clamp(420px, 62vh, 760px); min-height: 0; border-bottom: 1px solid var(--line); display: block; overflow: hidden; }
+.hm-home .gmap.hero-map { position: absolute; inset: 0; height: 100%; min-height: 0; }
+.map-chip { position: absolute; z-index: 3; top: 18px; left: max(18px, env(safe-area-inset-left, 0px)); display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px 8px 11px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--line); font: 600 0.82rem var(--body); color: var(--ink); cursor: pointer; box-shadow: 0 8px 20px -12px rgb(0 0 0 / 0.35); }
+.map-chip input { accent-color: var(--accent); margin: 0; width: 15px; height: 15px; }
+.hm-home-body { padding-top: 0; }
+.pf { position: relative; z-index: 4; margin-top: -72px; display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.7fr); gap: 24px 48px; align-items: end; padding: 30px 36px 32px; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 34px 70px -44px rgb(0 0 0 / 0.5); }
+.pf .kick { margin: 0; font: 500 0.7rem var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.pf-big { display: flex; align-items: flex-end; gap: 14px; margin: 12px 0 18px; }
+.pf-big b { font: 400 clamp(4.4rem, 7.5vw, 6.6rem)/0.78 var(--display); letter-spacing: -0.04em; }
+.pf-big span { display: grid; gap: 8px; font: 400 1.7rem/1 var(--display); padding-bottom: 2px; }
+.pf-big small { font: 500 0.7rem var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.pf-stats { margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.pf-stats div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 10px; padding: 2px 0 2px 22px; border-left: 1px solid var(--line); min-width: 0; }
+.pf-stats dd { margin: 0; font: 400 clamp(2rem, 3.1vw, 2.9rem)/1 var(--display); letter-spacing: -0.02em; white-space: nowrap; }
+.pf-stats dt { font: 500 0.64rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.pf-flags { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-flags li { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px 5px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font: 500 0.84rem var(--body); }
+.hm-sec { margin-top: 64px; }
+.sec-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.sec-h h2 { margin: 0; font: 400 clamp(2rem, 3.4vw, 2.8rem)/1 var(--display); letter-spacing: -0.02em; }
+.sec-h .mono { margin: 0; }
+.link-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 0; cursor: pointer; font: 600 0.92rem var(--body); color: var(--accent); }
+.link-btn svg { width: 18px; height: 18px; transition: transform 0.2s; }
+.link-btn:hover svg { transform: translateX(3px); }
+.mem-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+.mem-row button { flex: none; width: 168px; aspect-ratio: 1; border: 0; padding: 0; border-radius: 14px; overflow: hidden; cursor: pointer; background: var(--hover); }
+.mem-row img { width: 100%; height: 100%; object-fit: cover; }
+.hm-home .nolocs { margin: 40px 0 0; color: var(--ink-2); }
+.hm-home .nolocs button { border: 0; background: none; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; }
+
+/* cartões de viagem uniformes */
+.grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 40px 28px; }
+.card .cover { aspect-ratio: 4 / 3; border-radius: 16px; }
+.card .ov { padding: 22px 22px 20px; }
+.card .ov h3 { font-size: clamp(1.9rem, 2.3vw, 2.3rem); }
+.card .cmeta .mono { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.cflags { font-size: 0.95rem; letter-spacing: 0.1em; }
+.cal .d { border-radius: 6px; }
+.legend i { border-radius: 4px; }
+
+@media (max-width: 900px) {
+  .hm-home .hm-hero { height: 50vh; min-height: 320px; }
+  .hm-home .gmap.hero-map { position: absolute; height: 100%; }
+  .pf { grid-template-columns: 1fr; margin-top: -40px; padding: 22px 20px 24px; gap: 20px; border-radius: 20px; }
+  .pf-big { margin-bottom: 14px; }
+  .pf-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 20px; }
+  .pf-stats div { padding-left: 14px; }
+  .pf-stats div:nth-child(3n+1) { border-left: 0; padding-left: 0; }
+  .hm-sec { margin-top: 44px; }
+  .mem-row button { width: 128px; }
+  .bar { flex-wrap: wrap; }
+  .bar .search { flex: 1 1 100%; }
+  .bar .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+}
+.chip { white-space: nowrap; flex: none; }
+@media (max-width: 520px) {
+  .months { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
+  .cal { gap: 2px; }
+  .cal .d { font-size: 0.62rem; border-radius: 4px; }
+  .cal .wd { font-size: 0.56rem; }
+}

@@ -37,6 +37,15 @@ function gmCountryAt(lat, lng) {
   }
   return null;
 }
+/* país num ponto, com tolerância para pontos junto à costa */
+function gmCountryNear(lat, lng) {
+  const c = gmCountryAt(lat, lng); if (c) return c;
+  for (const r of [0.04, 0.1, 0.2, 0.4, 0.8]) for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4, q = gmCountryAt(lat + r * Math.sin(a), lng + r * Math.cos(a) / Math.max(0.2, Math.cos(lat * Math.PI / 180)));
+    if (q) return q;
+  }
+  return null;
+}
 /* lugar mais relevante perto de um ponto (nome em português) */
 function gmPlaceNear(lat, lng) {
   gmDecode(); let best = null, bs = Infinity;
@@ -46,6 +55,13 @@ function gmPlaceNear(lat, lng) {
     const d = haversineKm(lat, lng, p.lat, p.lng);
     if (d > 45) continue;
     const s = d / (0.6 + p.pop / 30 - 0.2) - (p.cap ? 3 : 0);
+    if (s < bs) { bs = s; best = p; }
+  }
+  if (!best) for (const p of GM.places) {
+    if (Math.abs(p.lat - lat) > 1.4 || Math.abs(p.lng - lng) > 2.8) continue;
+    const d = haversineKm(lat, lng, p.lat, p.lng);
+    if (d > 130) continue;
+    const s = d / (0.8 + p.pop / 40);
     if (s < bs) { bs = s; best = p; }
   }
   return best ? Object.assign({ d: gmDistKm(lat, lng, best) }, best) : null;
@@ -237,7 +253,7 @@ function gmDraw(ctx, W, H, v, o, pal, hit) {
     }
   }
   /* cidades */
-  if (z >= 2.6 && !o.noCities) {
+  if (z >= (o.citiesMinZ || 2.6) && !o.noCities) {
     const maxSr = z < 3.4 ? 1 : z < 4.2 ? 2 : z < 5.2 ? 3 : z < 6.2 ? 4 : z < 7.2 ? 6 : z < 8.6 ? 7 : 9;
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; let cnt = 0;
     for (const p of D.places) {
@@ -272,6 +288,7 @@ function gmDraw(ctx, W, H, v, o, pal, hit) {
 function gmPrep(o) {
   const pts = o.routePoints && o.routePoints.length > 1 ? o.routePoints : null;
   o._route = pts ? gmRouteGeom(pts) : [];
+  if (o.routes) for (const r of o.routes) if (r && r.length > 1) o._route.push(...gmRouteGeom(r));
   o._dots = (o.dots || []).filter(d => Number.isFinite(d.lat) && Number.isFinite(d.lng)).map(d => [gmX(d.lng), gmY(d.lat)]);
   o._marks = (o.marks || []).map(m => Object.assign({}, m, { x: gmX(m.lng), y: gmY(m.lat) }));
   return o;
@@ -400,7 +417,7 @@ function tripStops(t) {
   const merged = [];
   for (const c of keep) { const m = merged[merged.length - 1]; if (m && haversineKm(m.lat, m.lng, c.lat, c.lng) <= 9) { m.items.push(...c.items); m.lat = m.items.reduce((s, q) => s + q.lat, 0) / m.items.length; m.lng = m.items.reduce((s, q) => s + q.lng, 0) / m.items.length; } else merged.push(c); }
   const stops = merged.map((c, i) => {
-    const pl = gmPlaceNear(c.lat, c.lng), code = gmCountryAt(c.lat, c.lng) || (nearestCountry(c.lat, c.lng) || {}).code || '';
+    const pl = gmPlaceNear(c.lat, c.lng), code = gmCountryNear(c.lat, c.lng) || (nearestCountry(c.lat, c.lng) || {}).code || '';
     const name = pl ? (pl.d <= 15 ? pl.n : 'Perto de ' + pl.n) : (COUNTRY_BY_CODE[code] ? COUNTRY_BY_CODE[code].name : 'Local');
     const dates = c.items.map(q => q.date).filter(Boolean).sort();
     return { id: 's' + (i + 1), n: i + 1, lat: c.lat, lng: c.lng, name, code, d0: dates[0] || '', d1: dates[dates.length - 1] || '', photos: [...new Set(c.items.map(q => q.pid).filter(Boolean))], days: [...new Set(dates)], dc: dates.reduce((m, d) => (m[d] = (m[d] || 0) + 1, m), {}) };
