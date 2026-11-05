@@ -113,14 +113,13 @@ function coverEl(t) {
   return c;
 }
 function card(t) {
-  const n = (t.photos || []).length;
-  const meta = [dateText(t), n ? pl(n, 'foto', 'fotos') : ''].filter(Boolean).join('  ·  ');
+  const n = (t.photos || []).length, dc = tripDayCount(t);
+  const meta = [dateText(t), dc > 1 ? pl(dc, 'dia', 'dias') : '', n ? pl(n, 'foto', 'fotos') : ''].filter(Boolean).join('  ·  ');
+  const cv = coverEl(t);
+  cv.append(h('div', { class: 'ov' }, h('h3', {}, t.title), placeText(t) ? h('p', { class: 'place' }, placeText(t)) : null));
   return h('button', { class: 'card', type: 'button', 'aria-label': 'Abrir ' + t.title, onclick: () => go(t.id) },
-    coverEl(t),
-    h('div', {},
-      h('h3', {}, t.title),
-      placeText(t) ? h('p', { class: 'place' }, placeText(t)) : null,
-      meta ? h('p', { class: 'mono' }, meta) : null,
+    cv,
+    h('div', { class: 'cmeta' }, meta ? h('p', { class: 'mono' }, meta) : null,
       (t.tags || []).length ? h('div', { class: 'tagline' }, t.tags.map(x => h('span', {}, x))) : null));
 }
 function newTripBtn() {
@@ -427,22 +426,32 @@ function renderTrip() {
     const n = t.start && parseYmd(t.start) ? diffDays(t.start, d) + 1 : null;
     const empty = !text && !ps.length, st = stopById[info.dayStop[d]];
     const blk = h('section', { class: 'day' + (empty ? ' empty-day' : ''), id: 'dsec-' + d, 'data-day': d },
-      h('div', { class: 'day-h' }, n && n >= 1 ? h('b', {}, 'Dia ' + n) : null, h('span', { class: 'mono' }, dfmtLong.format(parseYmd(d))),
-        st ? h('button', { class: 'stopchip', type: 'button', onclick: () => focusStop(st.id, false) }, h('i', {}, String(st.n)), st.name) : null));
+      h('div', { class: 'dnum' }, n && n >= 1 ? h('b', {}, pad2(n)) : h('b', {}, '·'), h('small', {}, 'dia')),
+      h('div', { class: 'dbody' }));
+    const body = blk.querySelector('.dbody');
+    const dt = parseYmd(d);
+    body.append(h('div', { class: 'day-h' },
+      h('h3', {}, dt ? dfmtLong.format(dt) : d),
+      st ? h('button', { class: 'stopchip', type: 'button', onclick: () => focusStop(st.id, false) }, h('i', {}, String(st.n)), st.name) : null));
     prevStop = st;
     dayEls.set(d, blk);
     if (canWrite) {
-      const ta = h('textarea', { class: 'input', id: 'day-' + d, 'aria-label': 'Nota do dia ' + d, placeholder: 'O que aconteceu neste dia?', style: empty ? 'min-height:44px' : null,
+      const view1 = text ? h('p', { class: 'txt' }, text) : null;
+      const ta = h('textarea', { class: 'input', id: 'day-' + d, 'aria-label': 'Nota do dia ' + d, placeholder: 'O que aconteceu neste dia?', rows: 3,
         onchange: e => { const v = e.target.value.trim(); saveTrip(t.id, () => ({ days: { [d]: v } })); } });
-      ta.value = text; blk.append(ta);
-    } else if (text) blk.append(h('p', { class: 'txt' }, text));
-    if (ps.length) blk.append(h('div', { class: 'wall just' }, ps.map(p => photoFig(t, p, () => openAt(p)))));
+      ta.value = text;
+      const edit = h('button', { class: 'dedit', type: 'button', onclick: () => { ta.hidden = false; edit.hidden = true; if (view1) view1.hidden = true; ta.focus(); } }, text ? 'Editar texto' : '+ Escrever sobre este dia');
+      ta.hidden = !!text; ta.addEventListener('blur', () => { if (ta.value.trim()) { ta.hidden = true; edit.hidden = false; edit.textContent = 'Editar texto'; if (view1) { view1.hidden = false; view1.textContent = ta.value.trim(); } else { const p = h('p', { class: 'txt' }, ta.value.trim()); ta.before(p); } } });
+      if (view1) body.append(view1);
+      body.append(ta, edit);
+    } else if (text) body.append(h('p', { class: 'txt' }, text));
+    if (ps.length) body.append(justWall(ps.map(p => photoFig(t, p, () => openAt(p)))));
     blocks.append(blk);
   }
   if (loose.length) {
-    const wall = h('div', { class: 'wall just' }, loose.map(p => photoFig(t, p, () => openAt(p))));
+    const wall = justWall(loose.map(p => photoFig(t, p, () => openAt(p))));
     if (canUpload) wireDrop(wall, t.id);
-    blocks.append(h('section', { class: 'day' }, h('div', { class: 'day-h' }, h('b', {}, days.length ? 'Fotos sem dia' : 'Fotos')), wall));
+    blocks.append(h('section', { class: 'day loose' }, h('div', { class: 'dnum' }, h('b', {}, '+')), h('div', { class: 'dbody' }, h('div', { class: 'day-h' }, h('h3', {}, days.length ? 'Fotos sem dia' : 'Fotos')), wall)));
   }
   if (!photos.length) {
     const drop = h('div', { class: 'drop' },
@@ -453,9 +462,8 @@ function renderTrip() {
   }
   const feed = h('div', { class: 'feed' });
   if (info.stops.length > 1) {
-    feed.append(h('section', { class: 'itin' }, h('h2', { class: 'sec' }, 'Percurso'),
-      h('ol', {}, info.stops.map(s => h('li', {}, h('button', { type: 'button', onclick: () => focusStop(s.id, true) }, h('i', {}, String(s.n)),
-        h('span', {}, h('b', {}, s.name), h('small', {}, s.d0 ? (s.d1 && s.d1 !== s.d0 ? bkDayShort(s.d0) + ' – ' + bkDayShort(s.d1) : bkDayShort(s.d0)) : ''))))))));
+    feed.append(h('nav', { class: 'rail', 'aria-label': 'Percurso' }, info.stops.map(s => h('button', { type: 'button', onclick: () => focusStop(s.id, true) }, h('i', {}, String(s.n)),
+      h('span', {}, h('b', {}, s.name), h('small', {}, s.d0 ? (s.d1 && s.d1 !== s.d0 ? bkDayShort(s.d0) + ' – ' + bkDayShort(s.d1) : bkDayShort(s.d0)) : ''))))));
   }
   feed.append(blocks);
   if (gm) {
@@ -470,6 +478,31 @@ function renderTrip() {
     }
   } else root.append(feed);
   return root;
+}
+/* mosaico justificado: linhas com a mesma altura, sem buracos */
+function justWall(figs) {
+  const wall = h('div', { class: 'wall just' }, figs);
+  const gap = 6;
+  const lay = () => {
+    const W = wall.clientWidth; if (!W) return;
+    const target = W < 520 ? 150 : W < 760 ? 200 : 240;
+    const items = [...wall.children].map(f => ({ f, ar: Math.max(0.4, Math.min(3, parseFloat(f.style.getPropertyValue('--ar')) || 1.5)) }));
+    let row = [], sum = 0;
+    const flush = last => {
+      if (!row.length) return;
+      const avail = W - gap * (row.length - 1);
+      let hh = avail / sum;
+      if (last && hh > target * 1.15) hh = target * (row.length === 1 ? 1.15 : 1);
+      hh = Math.min(hh, target * 1.7);
+      for (const it of row) { it.f.style.width = Math.floor(it.ar * hh) + 'px'; it.f.style.height = Math.round(hh) + 'px'; }
+      row = []; sum = 0;
+    };
+    for (const it of items) { row.push(it); sum += it.ar; if (sum * target + gap * (row.length - 1) >= W) flush(false); }
+    flush(true);
+  };
+  if (window.ResizeObserver) { let w0 = 0; new ResizeObserver(() => { const w = wall.clientWidth; if (w !== w0) { w0 = w; lay(); } }).observe(wall); }
+  else requestAnimationFrame(lay);
+  return wall;
 }
 function wireDrop(el, tripId) {
   el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });

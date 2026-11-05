@@ -112,6 +112,9 @@ with sync_playwright() as p:
         for tab in ['mapa','viagens','fotos']:
             pg.click('#tab-'+tab); pg.wait_for_timeout(300); pg.screenshot(path=S+f'bk/s-{tab}.png')
         pg.click('#tab-viagens'); pg.click('.card >> nth=0'); pg.wait_for_timeout(400); pg.screenshot(path=S+'bk/s-trip.png',full_page=True)
+        pg.wait_for_timeout(2200); pg.evaluate('window.scrollTo(0,420)'); pg.wait_for_timeout(1500); pg.screenshot(path=S+'bk/s-trip-vp.png')
+        pg.click('.rail button:nth-child(3)'); pg.wait_for_timeout(2000); pg.screenshot(path=S+'bk/s-trip-vp2.png')
+        pg.evaluate("location.hash='mapa'"); pg.wait_for_timeout(1800); pg.screenshot(path=S+'bk/s-mapa.png')
         print(errs); sys.exit()
     themes = ['revista','classico','galeria','noite'] if mode=='themes' else ['revista']
     for th in themes:
