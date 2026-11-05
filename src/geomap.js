@@ -117,7 +117,7 @@ function gmDraw(ctx, W, H, v, o, pal, hit) {
   ctx.fillStyle = pal.land; ctx.fill(landPath);
   /* países visitados */
   if (o.visited && o.visited.size) {
-    ctx.save(); ctx.clip(landPath); ctx.fillStyle = pal.accent; ctx.globalAlpha = dark ? 0.22 : 0.15;
+    ctx.save(); ctx.clip(landPath); ctx.fillStyle = pal.accent; ctx.globalAlpha = (dark ? 0.22 : 0.15) * (z < 5.5 ? 1 : z > 7.5 ? 0.3 : 1 - (z - 5.5) * 0.35);
     for (const code of o.visited) { const rings = D.countries[code]; if (!rings) continue; const cp = new Path2D(); trace(cp, rings.filter(r => !r.hole)); ctx.fill(cp); }
     ctx.globalAlpha = 1; ctx.restore();
   }

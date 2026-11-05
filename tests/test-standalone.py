@@ -15,7 +15,7 @@ with sync_playwright() as p:
     with pg.expect_file_chooser() as fc: pg.click('text=Adicionar fotos')
     fc.value.set_files([S+'f1.jpg',S+'f2.jpg']); pg.wait_for_timeout(1200)
     print('imgs',pg.evaluate("[...document.querySelectorAll('.wall img')].map(i=>i.naturalWidth)"))
-    pg.reload(); pg.wait_for_timeout(800); pg.click('text=Todas as viagens')
+    pg.reload(); pg.wait_for_timeout(800); pg.click('.tx-back')
     pg.click('#tab-viagens'); pg.wait_for_timeout(300)
     print('after reload cards',pg.locator('.card').count(), pg.evaluate("[...document.querySelectorAll('.card img')].map(i=>i.naturalWidth)"))
     pg.click('.card >> nth=0'); pg.wait_for_timeout(300)
@@ -24,7 +24,7 @@ with sync_playwright() as p:
     pg.click('.bk >> text=Editar'); pg.click('.bk >> text=Capa >> nth=0') if False else None
     pg.click('.bk >> text=Fechar'); pg.wait_for_timeout(200)
     # import flow
-    pg.click('text=Todas as viagens'); 
+    pg.click('.tx-back'); 
     with pg.expect_file_chooser() as fc: pg.click('text=Importar fotos')
     fc.value.set_files([S+'f1.jpg',S+'f2.jpg']); pg.wait_for_timeout(800)
     pg.click('text=/Criar 1 viagem/'); pg.wait_for_timeout(1500)

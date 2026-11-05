@@ -363,120 +363,177 @@ function orderedPhotos(t) {
   for (const p of photos) if (!p.date || !days.includes(p.date)) out.push(p);
   return out;
 }
+const dfmtCard = new Intl.DateTimeFormat('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+const flagOf = code => /^[A-Z]{2}$/.test(code || '') ? String.fromCodePoint(...[...code].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
+const countryNameOf = code => (COUNTRY_BY_CODE[code] || {}).name || code;
+const ICO = {
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Z"/><path d="M12 6.5v13"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z"/></svg>',
+  route: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/></svg>',
+  pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M5 19h14"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4v-9Z"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4m0 0h11l-2 4 2 4H5"/></svg>',
+  plane: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3.8a1.5 1.5 0 0 0-3 0v4.7l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-6l8 2.5Z"/></svg>',
+  road: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 21 9.5 3M18 21 14.5 3M12 5v2.5M12 11v2.5M12 17v2.5"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>',
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 8h3.5L9 5.5h6L16.5 8H20v11H4V8Z"/><circle cx="12" cy="13" r="3.4"/></svg>'
+};
+const ico = (k, cls) => { const s = h('span', { class: 'ico' + (cls ? ' ' + cls : ''), 'aria-hidden': 'true' }); s.innerHTML = ICO[k]; return s; };
+
 function renderTrip() {
   const t = tripById(view.id);
-  const root = h('div');
-  root.append(h('button', { class: 'back', type: 'button', onclick: () => go(null) }, '← Todas as viagens'));
-  if (!t) { root.append(h('p', { class: 'mono' }, loaded ? 'Esta viagem já não existe.' : 'A carregar viagem…')); return root; }
+  const root = h('div', { class: 'tx' });
+  if (!t) { root.append(h('div', { class: 'tx-feed' }, h('button', { class: 'tx-back', type: 'button', onclick: () => go(null) }, ico('back'), 'Viagens'), h('p', { class: 'mono' }, loaded ? 'Esta viagem já não existe.' : 'A carregar viagem…'))); return root; }
+  if (!ui.ttab) ui.ttab = 'diario';
   const photos = t.photos || [];
   const dc = tripDayCount(t);
-  const when = [dateText(t), dc > 1 ? pl(dc, 'dia', 'dias') : '', photos.length ? pl(photos.length, 'foto', 'fotos') : ''].filter(Boolean).join('  ·  ');
   const canUpload = canWrite && !!assets;
   const cid = coverId(t), cph = photos.find(p => p.id === cid);
-  const hero = h('div', { class: 'hero' },
-    cph ? h('img', { src: blobUrl(cph.id), alt: '' }) : null,
-    h('div', { class: 'ht' },
-      when ? h('p', { class: 'mono' }, when) : null,
-      h('h1', {}, t.title),
-      placeText(t) ? h('p', { class: 'where' }, placeText(t)) : null));
-  root.append(h('header', { class: 'trip-head' }, hero,
-    (t.tags || []).length ? h('div', { class: 'tagline', style: 'margin:0 0 12px' }, t.tags.map(x => h('span', {}, x))) : null,
-    t.note ? h('p', { class: 'note' }, t.note) : null,
-    h('div', { class: 'acts' },
-      photos.length ? h('button', { class: 'btn book', type: 'button', onclick: () => openBook(t.id) }, 'Abrir o livro') : null,
-      canUpload ? h('button', { class: 'btn primary', type: 'button', onclick: () => pickFiles(t.id) }, 'Adicionar fotos') : null,
-      canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTripForm(t) }, 'Editar viagem') : null,
-      canWrite ? h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': t.fav ? 'true' : 'false', onclick: () => saveTrip(t.id, () => ({ fav: !t.fav })) }, '♥ Favorita') : null,
-      canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTrackImport(t.id) }, t.track && t.track.length >= 6 ? 'Atualizar percurso' : 'Importar percurso') : null,
-      downloads && photos.length ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportPdf(t.id) }, 'PDF') : null)));
-
   const days = tripDays(t);
   const byDay = new Map(), loose = [];
   for (const p of photos) { if (p.date && days.includes(p.date)) { if (!byDay.has(p.date)) byDay.set(p.date, []); byDay.get(p.date).push(p); } else loose.push(p); }
   const order = orderedPhotos(t).map(p => ({ tid: t.id, pid: p.id }));
   const openAt = p => openLightbox(order, order.findIndex(x => x.pid === p.id));
-  const showAll = days.length <= 45;
 
-  /* mapa, paragens e estatísticas */
+  /* mapa e paragens */
   const info = tripStops(t), pt = tripPoint(t), stopById = Object.fromEntries(info.stops.map(s => [s.id, s]));
   let marks = info.stops.map(s => { const ph = photos.find(p => s.photos.includes(p.id)); return { id: s.id, lat: s.lat, lng: s.lng, n: s.n, label: s.name, r: 15, photo: ph && !ui.discreet ? blobUrl(ph.th || ph.id) : null }; });
   { const seen = new Set(); for (const m of marks) { if (m.label && seen.has(m.label)) m.label = ''; else if (m.label) seen.add(m.label); } }
   if (!marks.length && pt) marks = [{ id: 'pt', lat: pt.lat, lng: pt.lng, label: t.title, r: 13 }];
   const dots = photos.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-  const stats = [[dc || days.length || 1, (dc || days.length || 1) === 1 ? 'dia' : 'dias'], photos.length ? [photos.length, photos.length === 1 ? 'foto' : 'fotos'] : null,
-    info.stops.length > 1 ? [info.stops.length, 'paragens'] : null, info.km >= 5 ? [bkNum(info.km), 'km'] : null, info.countries.length ? [info.countries.length, info.countries.length === 1 ? 'país' : 'países'] : null].filter(Boolean);
-  const head = root.querySelector('.trip-head'); if (head) head.querySelector('.acts').before(h('div', { class: 'tstats' }, stats.map(s => h('div', {}, h('b', {}, String(s[0])), h('span', {}, s[1])))));
-  let gm = null;
+  let gm = null, userMoved = 0;
   const dayEls = new Map();
   const focusStop = (id, scroll) => {
     const s = stopById[id]; if (!s) return;
     gm && (gm.setSel(id), gm.flyTo(s.lat, s.lng, 8.2));
-    if (scroll) { const d = days.find(x => info.dayStop[x] === id); const el = d && dayEls.get(d); el && el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    if (scroll) { ui.ttab = 'diario'; const d = days.find(x => info.dayStop[x] === id); const el = d && dayEls.get(d); el && el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   };
-  if (marks.length) {
-    gm = createGeoMap({ marks, routePoints: info.routePts, dots, visited: new Set(info.countries), fitPoints: marks.concat(info.routePts, dots), label: 'Mapa da viagem', wheel: 'ctrl', animate: true, pad: 80, maxZ: 8.5, onPin: id => focusStop(id, true), onMove: () => { userMoved = Date.now(); } });
-  }
-  let userMoved = 0;
-  const blocks = h('div', { class: 'days' });
-  let prevStop = null;
-  for (const d of days) {
-    const text = (t.days || {})[d] || '', ps = byDay.get(d) || [];
-    if (!showAll && !text && !ps.length) continue;
-    if (!canWrite && !text && !ps.length) continue;
-    const n = t.start && parseYmd(t.start) ? diffDays(t.start, d) + 1 : null;
-    const empty = !text && !ps.length, st = stopById[info.dayStop[d]];
-    const blk = h('section', { class: 'day' + (empty ? ' empty-day' : ''), id: 'dsec-' + d, 'data-day': d },
-      h('div', { class: 'dnum' }, n && n >= 1 ? h('b', {}, pad2(n)) : h('b', {}, '·'), h('small', {}, 'dia')),
-      h('div', { class: 'dbody' }));
-    const body = blk.querySelector('.dbody');
-    const dt = parseYmd(d);
-    body.append(h('div', { class: 'day-h' },
-      h('h3', {}, dt ? dfmtLong.format(dt) : d),
-      st ? h('button', { class: 'stopchip', type: 'button', onclick: () => focusStop(st.id, false) }, h('i', {}, String(st.n)), st.name) : null));
-    prevStop = st;
-    dayEls.set(d, blk);
-    if (canWrite) {
-      const view1 = text ? h('p', { class: 'txt' }, text) : null;
-      const ta = h('textarea', { class: 'input', id: 'day-' + d, 'aria-label': 'Nota do dia ' + d, placeholder: 'O que aconteceu neste dia?', rows: 3,
-        onchange: e => { const v = e.target.value.trim(); saveTrip(t.id, () => ({ days: { [d]: v } })); } });
-      ta.value = text;
-      const edit = h('button', { class: 'dedit', type: 'button', onclick: () => { ta.hidden = false; edit.hidden = true; if (view1) view1.hidden = true; ta.focus(); } }, text ? 'Editar texto' : '+ Escrever sobre este dia');
-      ta.hidden = !!text; ta.addEventListener('blur', () => { if (ta.value.trim()) { ta.hidden = true; edit.hidden = false; edit.textContent = 'Editar texto'; if (view1) { view1.hidden = false; view1.textContent = ta.value.trim(); } else { const p = h('p', { class: 'txt' }, ta.value.trim()); ta.before(p); } } });
-      if (view1) body.append(view1);
-      body.append(ta, edit);
-    } else if (text) body.append(h('p', { class: 'txt' }, text));
-    if (ps.length) body.append(justWall(ps.map(p => photoFig(t, p, () => openAt(p)))));
-    blocks.append(blk);
-  }
-  if (loose.length) {
-    const wall = justWall(loose.map(p => photoFig(t, p, () => openAt(p))));
-    if (canUpload) wireDrop(wall, t.id);
-    blocks.append(h('section', { class: 'day loose' }, h('div', { class: 'dnum' }, h('b', {}, '+')), h('div', { class: 'dbody' }, h('div', { class: 'day-h' }, h('h3', {}, days.length ? 'Fotos sem dia' : 'Fotos')), wall)));
-  }
-  if (!photos.length) {
-    const drop = h('div', { class: 'drop' },
-      h('p', {}, canUpload ? 'Ainda sem fotos. Arrasta imagens para aqui ou escolhe-as no dispositivo. Leio a data e o GPS que estiverem guardados nelas.' : 'Esta viagem ainda não tem fotos.'),
-      canUpload ? h('button', { class: 'btn primary', type: 'button', onclick: () => pickFiles(t.id) }, 'Escolher fotos') : null);
-    if (canUpload) wireDrop(drop, t.id);
-    blocks.append(drop);
-  }
-  const feed = h('div', { class: 'feed' });
-  if (info.stops.length > 1) {
-    feed.append(h('nav', { class: 'rail', 'aria-label': 'Percurso' }, info.stops.map(s => h('button', { type: 'button', onclick: () => focusStop(s.id, true) }, h('i', {}, String(s.n)),
-      h('span', {}, h('b', {}, s.name), h('small', {}, s.d0 ? (s.d1 && s.d1 !== s.d0 ? bkDayShort(s.d0) + ' – ' + bkDayShort(s.d1) : bkDayShort(s.d0)) : ''))))));
-  }
-  feed.append(blocks);
-  if (gm) {
-    root.append(h('div', { class: 'tripgrid' }, feed, h('aside', { class: 'tripmap' }, gm.el)));
-    if (window.IntersectionObserver) {
-      if (spy) spy.disconnect();
-      let cur = null, timer = 0;
-      spy = new IntersectionObserver(es => {
-        for (const e of es) if (e.isIntersecting) { const sid = info.dayStop[e.target.dataset.day]; if (sid && sid !== cur) { cur = sid; clearTimeout(timer); timer = setTimeout(() => { if (Date.now() - userMoved > 3500) focusStop(sid, false); else gm.setSel(sid); }, 350); } }
-      }, { rootMargin: '-30% 0px -60% 0px' });
-      dayEls.forEach(el => spy.observe(el));
+  if (marks.length) gm = createGeoMap({ marks, routePoints: info.routePts, dots, visited: new Set(info.countries), fitPoints: marks.concat(info.routePts, dots), label: 'Mapa da viagem', wheel: 'ctrl', animate: true, pad: 70, maxZ: 8.5, onPin: id => focusStop(id, true), onMove: () => { userMoved = Date.now(); } });
+
+  /* barra superior */
+  const feed = h('div', { class: 'tx-feed' });
+  const actBtn = (k, label, fn, extra) => h('button', Object.assign({ class: 'tx-act', type: 'button', onclick: fn, title: label }, extra || {}), ico(k), h('span', {}, label));
+  feed.append(h('div', { class: 'tx-top' },
+    h('button', { class: 'tx-back', type: 'button', onclick: () => go(null) }, ico('back'), 'Viagens'),
+    h('div', { class: 'tx-tools' },
+      canWrite ? actBtn('heart', t.fav ? 'Favorita' : 'Favoritar', () => saveTrip(t.id, () => ({ fav: !t.fav })), { 'aria-pressed': t.fav ? 'true' : 'false' }) : null,
+      canWrite ? actBtn('route', t.track && t.track.length >= 6 ? 'Percurso' : 'Importar percurso', () => openTrackImport(t.id)) : null,
+      downloads && photos.length ? actBtn('pdf', 'PDF', () => exportPdf(t.id)) : null,
+      canWrite ? actBtn('edit', 'Editar', () => openTripForm(t)) : null)));
+
+  /* cabeçalho */
+  const yrs = (t.start || '').slice(0, 4), mo = t.start ? MONTHS_LONG[+t.start.slice(5, 7) - 1] : '';
+  const kicker = [dc > 1 ? pl(dc, 'dia', 'dias') : '', mo ? mo + ' ' + yrs : ''].filter(Boolean).join(' · ');
+  const stats = [[dc || days.length || 1, (dc || days.length || 1) === 1 ? 'dia' : 'dias'], info.km >= 5 ? [bkNum(info.km), 'km'] : null,
+    info.stops.length > 1 ? [info.stops.length, 'paragens'] : null, [photos.length, photos.length === 1 ? 'foto' : 'fotos'], info.countries.length ? [info.countries.length, info.countries.length === 1 ? 'país' : 'países'] : null].filter(Boolean);
+  feed.append(h('header', { class: 'tx-head' },
+    cph ? h('button', { class: 'tx-cover', type: 'button', 'aria-label': 'Abrir foto de capa', onclick: () => openAt(cph) }, h('img', { src: blobUrl(cph.id), alt: '' })) : null,
+    h('div', { class: 'tx-titles' },
+      kicker ? h('p', { class: 'tx-kicker' }, kicker) : null,
+      h('h1', {}, t.title),
+      placeText(t) ? h('p', { class: 'tx-where' }, placeText(t)) : null,
+      info.countries.length ? h('ul', { class: 'tx-flags', 'aria-label': 'Países' }, info.countries.map(c => h('li', {}, h('span', { class: 'fl', 'aria-hidden': 'true' }, flagOf(c)), countryNameOf(c)))) : null),
+    h('dl', { class: 'tx-stats' }, stats.map(s => h('div', {}, h('dt', {}, s[1]), h('dd', {}, String(s[0]))))),
+    t.note ? h('p', { class: 'tx-note' }, t.note) : null,
+    h('div', { class: 'tx-cta' },
+      photos.length ? h('button', { class: 'btn book', type: 'button', onclick: () => openBook(t.id) }, ico('book'), 'Abrir o livro') : null,
+      canUpload ? h('button', { class: 'btn quiet', type: 'button', onclick: () => pickFiles(t.id) }, ico('plus'), 'Adicionar fotos') : null)));
+
+  /* separadores */
+  const tabs = [['diario', 'Diário'], ['fotos', 'Fotos · ' + photos.length], ['percurso', 'Percurso']];
+  feed.append(h('nav', { class: 'tx-tabs', role: 'tablist' }, tabs.map(([k, l]) => h('button', { type: 'button', role: 'tab', 'aria-selected': ui.ttab === k ? 'true' : 'false', onclick: () => { ui.ttab = k; render(); } }, l))));
+
+  if (ui.ttab === 'fotos') {
+    if (photos.length) feed.append(h('section', { class: 'tx-sec' }, justWall(orderedPhotos(t).map(p => photoFig(t, p, () => openAt(p))))));
+    else feed.append(h('p', { class: 'mono' }, 'Ainda sem fotos.'));
+  } else if (ui.ttab === 'percurso') {
+    const ol = h('ol', { class: 'tx-route' });
+    info.stops.forEach((s, i) => {
+      if (i) { const prev = info.stops[i - 1], km = haversineKm(prev.lat, prev.lng, s.lat, s.lng), fly = km > 450; ol.append(h('li', { class: 'leg' }, ico(fly ? 'plane' : 'road'), `${bkNum(km)} km${fly ? ' · voo' : ''}`)); }
+      ol.append(h('li', { class: 'st' }, h('button', { type: 'button', onclick: () => focusStop(s.id, false) }, h('i', {}, String(s.n)),
+        h('span', {}, h('b', {}, s.name), h('small', {}, [flagOf(s.code) + ' ' + countryNameOf(s.code), s.d0 ? (s.d1 && s.d1 !== s.d0 ? bkDayShort(s.d0) + ' – ' + bkDayShort(s.d1) : bkDayShort(s.d0)) : '', s.photos.length ? pl(s.photos.length, 'foto', 'fotos') : ''].filter(Boolean).join('  ·  '))))));
+    });
+    feed.append(info.stops.length ? ol : h('p', { class: 'mono' }, 'Sem paragens: junta fotos com GPS ou importa o percurso.'));
+  } else {
+    const list = h('div', { class: 'tx-list' });
+    const first = info.stops[0], last = info.stops[info.stops.length - 1];
+    list.append(h('div', { class: 'tx-mark' }, ico('home'), h('div', {}, h('b', {}, 'Partida'), h('span', {}, [t.start && parseYmd(t.start) ? dfmtCard.format(parseYmd(t.start)) : '', first ? first.name : ''].filter(Boolean).join(' · ')))));
+    let prevStop = null;
+    for (const d of days) {
+      const text = (t.days || {})[d] || '', ps = byDay.get(d) || [];
+      if (!canWrite && !text && !ps.length) continue;
+      const n = t.start && parseYmd(t.start) ? diffDays(t.start, d) + 1 : null;
+      const st = stopById[info.dayStop[d]], dt = parseYmd(d);
+      if (st && prevStop && st.id !== prevStop.id) {
+        const km = haversineKm(prevStop.lat, prevStop.lng, st.lat, st.lng), fly = km > 450;
+        if (km >= 2) list.append(h('div', { class: 'tx-leg' + (fly ? ' fly' : '') }, ico(fly ? 'plane' : 'road'), h('span', {}, `${bkNum(km)} km até ${st.name}`)));
+      }
+      if (st) prevStop = st;
+      const empty = !text && !ps.length;
+      const card = h('article', { class: 'fp' + (empty ? ' empty' : ''), id: 'dsec-' + d, 'data-day': d });
+      dayEls.set(d, card);
+      if (ps.length) {
+        const hero = ps.find(p => p.fav) || ps[0], rest = ps.filter(p => p !== hero), shown = rest.slice(0, 4);
+        card.append(h('div', { class: 'fp-media' + (shown.length ? '' : ' solo') },
+          h('button', { class: 'fp-hero', type: 'button', 'aria-label': 'Abrir foto', onclick: () => openAt(hero) }, h('img', { src: blobUrl(hero.id), alt: hero.caption || '', loading: 'lazy', decoding: 'async' })),
+          shown.length ? h('div', { class: 'fp-thumbs n' + shown.length }, shown.map((p, i) => h('button', { type: 'button', 'aria-label': 'Abrir foto', onclick: () => openAt(p) }, h('img', { src: blobUrl(p.th || p.id), alt: '', loading: 'lazy', decoding: 'async' }),
+            i === shown.length - 1 && rest.length > shown.length ? h('span', { class: 'more' }, '+' + (rest.length - shown.length)) : null))) : null));
+      }
+      const body = h('div', { class: 'fp-body' },
+        h('p', { class: 'fp-meta' }, n && n >= 1 ? h('b', {}, 'Dia ' + n) : null, h('span', {}, dt ? dfmtCard.format(dt) : d)),
+        h('h2', {}, st ? st.name : (placeText(t) || t.title)),
+        st ? h('p', { class: 'fp-place' }, h('span', { class: 'fl', 'aria-hidden': 'true' }, flagOf(st.code)), countryNameOf(st.code)) : null);
+      if (text) {
+        const p = h('p', { class: 'fp-text clamp5' }, text);
+        body.append(p);
+        if (text.length > 280) body.append(h('button', { class: 'fp-more', type: 'button', onclick: e => { p.classList.toggle('clamp5'); e.target.textContent = p.classList.contains('clamp5') ? 'Ler mais' : 'Ler menos'; } }, 'Ler mais'));
+      }
+      const foot = h('div', { class: 'fp-foot' },
+        ps.length ? h('span', {}, ico('cam'), pl(ps.length, 'foto', 'fotos')) : null,
+        st && gm ? h('button', { type: 'button', onclick: () => focusStop(st.id, false) }, ico('pin'), 'Ver no mapa') : null);
+      if (canWrite) {
+        const ta = h('textarea', { class: 'input', 'aria-label': 'Texto do dia ' + d, placeholder: 'O que aconteceu neste dia?', rows: 4, hidden: true,
+          onchange: e => { const v = e.target.value.trim(); saveTrip(t.id, () => ({ days: { [d]: v } })); } });
+        ta.value = text;
+        const eb = h('button', { type: 'button', onclick: () => { ta.hidden = false; eb.hidden = true; const tx = body.querySelector('.fp-text'); if (tx) tx.hidden = true; ta.focus(); } }, ico('edit'), text ? 'Editar texto' : 'Escrever');
+        foot.append(eb); body.append(ta);
+      }
+      body.append(foot);
+      card.append(body);
+      list.append(card);
     }
-  } else root.append(feed);
+    list.append(h('div', { class: 'tx-mark end' }, ico('flag'), h('div', {}, h('b', {}, 'Regresso'), h('span', {}, [t.end && parseYmd(t.end) ? dfmtCard.format(parseYmd(t.end)) : '', last ? last.name : ''].filter(Boolean).join(' · ')))));
+    if (loose.length) {
+      const wall = justWall(loose.map(p => photoFig(t, p, () => openAt(p))));
+      if (canUpload) wireDrop(wall, t.id);
+      list.append(h('section', { class: 'tx-sec' }, h('h2', { class: 'tx-h2' }, days.length ? 'Fotos sem dia' : 'Fotos'), wall));
+    }
+    if (!photos.length) {
+      const drop = h('div', { class: 'drop' },
+        h('p', {}, canUpload ? 'Ainda sem fotos. Arrasta imagens para aqui ou escolhe-as no dispositivo. Leio a data e o GPS que estiverem guardados nelas.' : 'Esta viagem ainda não tem fotos.'),
+        canUpload ? h('button', { class: 'btn primary', type: 'button', onclick: () => pickFiles(t.id) }, 'Escolher fotos') : null);
+      if (canUpload) wireDrop(drop, t.id);
+      list.append(drop);
+    }
+    feed.append(list);
+  }
+  root.append(gm ? h('aside', { class: 'tx-map' }, gm.el) : null, feed);
+  if (gm && window.IntersectionObserver && ui.ttab === 'diario') {
+    if (spy) spy.disconnect();
+    let cur = null, timer = 0;
+    spy = new IntersectionObserver(es => {
+      const lst = root.querySelector('.tx-list'); if (lst && lst.getBoundingClientRect().top > window.innerHeight * 0.55) return;
+      for (const e of es) if (e.isIntersecting) { const sid = info.dayStop[e.target.dataset.day]; if (sid && sid !== cur) { cur = sid; clearTimeout(timer); timer = setTimeout(() => { if (Date.now() - userMoved > 3500) focusStop(sid, false); else gm.setSel(sid); }, 300); } }
+    }, { rootMargin: '-35% 0px -55% 0px' });
+    dayEls.forEach(el => spy.observe(el));
+    const allPts = marks.concat(info.routePts, dots);
+    const onTop = () => { if (!root.isConnected) { window.removeEventListener('scroll', onTop); return; } const lst = root.querySelector('.tx-list'); if (!lst || cur == null) return; if (lst.getBoundingClientRect().top > window.innerHeight * 0.55) { cur = null; clearTimeout(timer); gm.setSel(null); if (Date.now() - userMoved > 3500) gm.fit(allPts, 70, 8.5, true); } };
+    window.addEventListener('scroll', onTop, { passive: true });
+  }
+  if (!gm) root.classList.add('nomap');
   return root;
 }
 /* mosaico justificado: linhas com a mesma altura, sem buracos */
@@ -520,7 +577,7 @@ function render() {
   const page = view.name === 'trip' ? renderTrip() : renderHome();
   if (ui.discreet) page.prepend(h('div', { class: 'discreet-bar', role: 'status' }, h('span', {}, 'Modo discreto ligado: fotos e textos estão desfocados.'), h('button', { class: 'btn sm', type: 'button', onclick: toggleDiscreet }, 'Desligar')));
   if (spy && view.name !== 'trip') { spy.disconnect(); spy = null; }
-  const wrapEl = document.querySelector('.wrap'); if (wrapEl) wrapEl.classList.toggle('wide', view.name === 'trip');
+  const wrapEl = document.querySelector('.wrap'); if (wrapEl) { wrapEl.classList.toggle('wide', false); wrapEl.classList.toggle('full', view.name === 'trip'); }
   $('#app').replaceChildren(page);
   window.scrollTo(0, y);
 }
