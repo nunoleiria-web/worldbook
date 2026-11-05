@@ -1633,9 +1633,15 @@ function buildTrack(pts, start, end) {
   const inRange = list.length;
   list.sort((x, y) => x.lt - y.lt);
   const kept = [];
+  let prev = null;
   for (const p of list) {
     const last = kept[kept.length - 1];
-    if (!last || haversineKm(last.lat, last.lng, p.lat, p.lng) >= 0.04) kept.push(p);
+    if (!last) kept.push(p);
+    else if (haversineKm(last.lat, last.lng, p.lat, p.lng) >= 0.04) {
+      if (prev && prev !== last && prev.lt - last.lt >= 60) kept.push(prev); /* fim da permanência */
+      kept.push(p);
+    }
+    prev = p;
   }
   if (list.length && kept[kept.length - 1] !== list[list.length - 1]) kept.push(list[list.length - 1]);
   let out = kept;
