@@ -110,6 +110,11 @@ function createMap(o) {
     gRoute.append(svgEl('path', { d, fill: 'none', stroke: col('route', 'blue'), 'stroke-width': 1.6, 'stroke-dasharray': '6 5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.85, 'vector-effect': 'non-scaling-stroke' }));
   }
   const scaled = [];
+  if (o.track && o.track.length >= 6) {
+    let d = '';
+    for (let i = 0; i + 2 < o.track.length; i += 3) { const q = project(o.track[i + 1], o.track[i]); d += (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
+    gRoute.append(svgEl('path', { d, fill: 'none', stroke: col('route', 'blue'), 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.9, 'vector-effect': 'non-scaling-stroke' }));
+  }
   for (const d of (o.dots || [])) {
     const q = project(d.lng, d.lat);
     const g = svgEl('g', { transform: `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)})` });
@@ -134,7 +139,7 @@ function createMap(o) {
   let { x: vx, y: vy, w: vw } = o.view || { x: 0, y: 0, w: MAP_W };
   const box = h('div', { class: 'mapbox' + (o.onPick ? ' pick' : '') });
   const vh = () => vw * MAP_H / MAP_W;
-  const clampView = () => { vw = Math.max(50, Math.min(MAP_W, vw)); vx = Math.max(0, Math.min(MAP_W - vw, vx)); vy = Math.max(0, Math.min(MAP_H - vh(), vy)); };
+  const clampView = () => { vw = Math.max(20, Math.min(MAP_W, vw)); vx = Math.max(0, Math.min(MAP_W - vw, vx)); vy = Math.max(0, Math.min(MAP_H - vh(), vy)); };
   const widthPx = () => svg.getBoundingClientRect().width || 700;
   function apply(silent) {
     clampView();
@@ -158,7 +163,7 @@ function createMap(o) {
       const r = svg.getBoundingClientRect();
       const fx = cx == null ? 0.5 : (cx - r.left) / r.width, fy = cy == null ? 0.5 : (cy - r.top) / r.height;
       const px = vx + fx * vw, py = vy + fy * vh();
-      vw = Math.max(50, Math.min(MAP_W, vw * f)); vx = px - fx * vw; vy = py - fy * vh(); apply();
+      vw = Math.max(20, Math.min(MAP_W, vw * f)); vx = px - fx * vw; vy = py - fy * vh(); apply();
     };
     box.append(h('div', { class: 'mapctl' },
       h('button', { type: 'button', 'aria-label': 'Aproximar', onclick: () => zoom(0.6) }, '+'),
@@ -200,7 +205,7 @@ function mapSVGString(t) {
   const pt = tripPoint(t);
   if (!pt) return '';
   const dots = (t.photos || []).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-  const m = createMap({ static: true, palette: BOOK_PAL, pins: [{ id: t.id, lat: pt.lat, lng: pt.lng }], dots, view: fitView([pt].concat(dots), 300) });
+  const m = createMap({ static: true, palette: BOOK_PAL, pins: [{ id: t.id, lat: pt.lat, lng: pt.lng }], dots, track: t.track, view: fitView([pt].concat(dots, trackPoints(t)), 300) });
   return m.svg.outerHTML;
 }
 
@@ -500,6 +505,7 @@ function renderTrip() {
       canUpload ? h('button', { class: 'btn primary', type: 'button', onclick: () => pickFiles(t.id) }, 'Adicionar fotos') : null,
       canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTripForm(t) }, 'Editar viagem') : null,
       canWrite ? h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': t.fav ? 'true' : 'false', onclick: () => saveTrip(t.id, () => ({ fav: !t.fav })) }, '♥ Favorita') : null,
+      canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTrackImport(t.id) }, t.track && t.track.length >= 6 ? 'Atualizar percurso' : 'Importar percurso') : null,
       h('button', { class: 'btn quiet', type: 'button', onclick: () => openBook(t.id) }, 'Ver como livro'),
       downloads ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportBook(t.id) }, 'Exportar livro') : null,
       downloads ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportPdf(t.id) }, 'Exportar PDF') : null)));
@@ -507,9 +513,9 @@ function renderTrip() {
   const pt = tripPoint(t);
   if (pt) {
     const dots = photos.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-    const m = createMap({ pins: [{ id: t.id, lat: pt.lat, lng: pt.lng, label: t.title }], dots, view: fitView([pt].concat(dots), 260), label: 'Mapa da viagem', onPin: () => {} });
+    const m = createMap({ pins: [{ id: t.id, lat: pt.lat, lng: pt.lng, label: t.title }], dots, track: t.track, view: fitView([pt].concat(dots, trackPoints(t)), (t.track && t.track.length >= 6) ? 30 : 260), label: 'Mapa da viagem', onPin: () => {} });
     root.append(h('div', { class: 'trip-mini' }, m.el,
-      h('p', { class: 'mono', style: 'margin:8px 0 0' }, pt.src === 'manual' ? 'Local marcado por ti.' : pt.src === 'fotos' ? 'Local calculado a partir do GPS das fotos' + (dots.length ? ` (${pl(dots.length, 'foto', 'fotos')} com GPS).` : '.') : 'Centro do país. Marca o sítio exato ao editar a viagem.')));
+      h('p', { class: 'mono', style: 'margin:8px 0 0' }, (t.track && t.track.length >= 6 ? `Percurso importado (${pl(t.track.length / 3, 'ponto', 'pontos')}). ` : '') + (pt.src === 'manual' ? 'Local marcado por ti.' : pt.src === 'percurso' ? 'Local calculado a partir do percurso.' : pt.src === 'fotos' ? 'Local calculado a partir do GPS das fotos' + (dots.length ? ` (${pl(dots.length, 'foto', 'fotos')} com GPS).` : '.') : 'Centro do país. Marca o sítio exato ao editar a viagem.'))));
   }
 
   const days = tripDays(t);
@@ -599,6 +605,204 @@ function saveTrip(tripId, build) {
   });
 }
 
+/* ---------- percurso GPS (Google Maps Timeline, GPX, KML, GeoJSON) ---------- */
+const NUM2 = /(-?\d+(?:\.\d+)?)\s*°?\s*,\s*(-?\d+(?:\.\d+)?)/;
+function parseLL(v) {
+  if (v == null) return null;
+  if (typeof v === 'object') {
+    if (Number.isFinite(v.latitudeE7) && Number.isFinite(v.longitudeE7)) return [v.latitudeE7 / 1e7, v.longitudeE7 / 1e7];
+    if (Number.isFinite(v.latE7) && Number.isFinite(v.lngE7)) return [v.latE7 / 1e7, v.lngE7 / 1e7];
+    if (Number.isFinite(v.latitude) && Number.isFinite(v.longitude)) return [v.latitude, v.longitude];
+    return parseLL(v.latLng || v.LatLng || v.point || null);
+  }
+  const m = String(v).replace(/^geo:/, '').match(NUM2);
+  if (!m) return null;
+  const la = +m[1], lo = +m[2];
+  return Math.abs(la) <= 90 && Math.abs(lo) <= 180 ? [la, lo] : null;
+}
+function parseTime(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'object') return Number.isFinite(v.ms) ? v : null;
+  if (typeof v === 'number' || /^\d{10,13}$/.test(String(v))) { const n = +v; return { ms: n > 1e11 ? n : n * 1000, off: null }; }
+  const ms = Date.parse(v);
+  if (!Number.isFinite(ms)) return null;
+  const m = String(v).match(/([+-])(\d{2}):?(\d{2})$/);
+  return { ms, off: m ? (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +m[3]) : null };
+}
+function parseTrack(text) {
+  const pts = [];
+  const add = (ll, t) => { if (ll && Number.isFinite(ll[0]) && Number.isFinite(ll[1]) && (ll[0] || ll[1])) pts.push({ lat: ll[0], lng: ll[1], t: parseTime(t) }); };
+  const s = String(text || '').trim();
+  if (!s) throw new Error('vazio');
+  if (s[0] === '<') {
+    const doc = new DOMParser().parseFromString(s, 'text/xml');
+    if (doc.querySelector('parsererror')) throw new Error('xml');
+    const tm = el => { const x = el.getElementsByTagName('time')[0]; return x ? x.textContent : null; };
+    for (const el of doc.getElementsByTagName('trkpt')) add([+el.getAttribute('lat'), +el.getAttribute('lon')], tm(el));
+    if (!pts.length) for (const el of doc.getElementsByTagName('rtept')) add([+el.getAttribute('lat'), +el.getAttribute('lon')], tm(el));
+    for (const tr of doc.getElementsByTagName('gx:Track')) {
+      const whens = [...tr.getElementsByTagName('when')].map(x => x.textContent);
+      [...tr.getElementsByTagName('gx:coord')].forEach((c, i) => { const [lo, la] = c.textContent.trim().split(/\s+/).map(Number); add([la, lo], whens[i]); });
+    }
+    if (!pts.length) for (const el of doc.getElementsByTagName('coordinates')) for (const c of el.textContent.trim().split(/\s+/)) { const [lo, la] = c.split(',').map(Number); add([la, lo], null); }
+    if (!pts.length) for (const el of doc.getElementsByTagName('wpt')) add([+el.getAttribute('lat'), +el.getAttribute('lon')], tm(el));
+  } else {
+    const j = JSON.parse(s);
+    const seg = it => {
+      if (!it || typeof it !== 'object') return;
+      const base = parseTime(it.startTime || (it.duration && (it.duration.startTimestamp || it.duration.startTimestampMs)));
+      const end = parseTime(it.endTime || (it.duration && (it.duration.endTimestamp || it.duration.endTimestampMs)));
+      if (Array.isArray(it.timelinePath)) for (const p of it.timelinePath) {
+        let t = p.time != null ? p.time : null;
+        if (t == null && base && p.durationMinutesOffsetFromStartTime != null) t = { ms: base.ms + (+p.durationMinutesOffsetFromStartTime) * 60000, off: base.off };
+        add(parseLL(p.point), t);
+      }
+      if (it.visit) add(parseLL(it.visit.topCandidate && it.visit.topCandidate.placeLocation), base);
+      if (it.activity) { add(parseLL(it.activity.start), base); add(parseLL(it.activity.end), end); }
+      if (it.placeVisit) add(parseLL(it.placeVisit.location), it.placeVisit.duration && (it.placeVisit.duration.startTimestamp || it.placeVisit.duration.startTimestampMs));
+      const as = it.activitySegment;
+      if (as) {
+        const d = as.duration || {};
+        add(parseLL(as.startLocation), d.startTimestamp || d.startTimestampMs);
+        for (const p of ((as.simplifiedRawPath && as.simplifiedRawPath.points) || [])) add(parseLL(p), p.timestamp || p.timestampMs);
+        add(parseLL(as.endLocation), d.endTimestamp || d.endTimestampMs);
+      }
+      if (it.position) add(parseLL(it.position.LatLng || it.position), it.position.timestamp || it.timestamp);
+      if (it.latitudeE7 != null) add(parseLL(it), it.timestamp || it.timestampMs);
+    };
+    if (Array.isArray(j)) j.forEach(seg);
+    else if (j && typeof j === 'object') {
+      for (const k of ['semanticSegments', 'rawSignals', 'timelineObjects', 'locations']) if (Array.isArray(j[k])) j[k].forEach(seg);
+      if (Array.isArray(j.features)) for (const f of j.features) {
+        const g = f.geometry || {};
+        const lines = g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : g.type === 'Point' ? [[g.coordinates]] : [];
+        const times = (f.properties && (f.properties.coordTimes || f.properties.times)) || [];
+        let n = 0;
+        for (const ln of lines) for (const c of ln) { add([c[1], c[0]], Array.isArray(times[0]) ? times[0][n] : times[n]); n++; }
+      }
+    }
+  }
+  if (!pts.length) throw new Error('sem pontos');
+  return pts;
+}
+const localSecs = p => p.t ? Math.round(p.t.ms / 1000) + (p.t.off != null ? p.t.off : -new Date(p.t.ms).getTimezoneOffset()) * 60 : 0;
+function buildTrack(pts, start, end) {
+  let list = pts.map(p => ({ lat: p.lat, lng: p.lng, lt: localSecs(p), timed: !!p.t }));
+  const anyTime = list.some(p => p.timed);
+  if (anyTime) list = list.filter(p => p.timed);
+  const total = list.length;
+  const a = parseYmd(start), b = parseYmd(end || start);
+  if (anyTime && a) {
+    const lo = a.getTime() / 1000, hi = (b ? b.getTime() : a.getTime()) / 1000 + 86400;
+    list = list.filter(p => p.lt >= lo && p.lt < hi);
+  }
+  const inRange = list.length;
+  list.sort((x, y) => x.lt - y.lt);
+  const kept = [];
+  for (const p of list) {
+    const last = kept[kept.length - 1];
+    if (!last || haversineKm(last.lat, last.lng, p.lat, p.lng) >= 0.04) kept.push(p);
+  }
+  if (list.length && kept[kept.length - 1] !== list[list.length - 1]) kept.push(list[list.length - 1]);
+  let out = kept;
+  if (out.length > 1500) { const k = Math.ceil(out.length / 1500); out = out.filter((_, i) => i % k === 0 || i === out.length - 1); }
+  const flat = [];
+  for (const p of out) flat.push(Math.round(p.lat * 1e5) / 1e5, Math.round(p.lng * 1e5) / 1e5, p.lt);
+  return { flat, total, inRange, timed: anyTime, first: list[0] && list[0].lt, last: list.length ? list[list.length - 1].lt : null };
+}
+function trackPoints(t) {
+  const r = [];
+  if (t.track && t.track.length >= 6) for (let i = 0; i + 2 < t.track.length; i += 9) r.push({ lat: t.track[i], lng: t.track[i + 1] });
+  return r;
+}
+const photoSecs = p => { const d = parseYmd(p.date), m = String(p.time || '').match(/^(\d{2}):(\d{2})(?::(\d{2}))?/); return d && m ? d.getTime() / 1000 + (+m[1]) * 3600 + (+m[2]) * 60 + (+(m[3] || 0)) : null; };
+function trackLocate(track, photo) {
+  const ts = photoSecs(photo), n = Math.floor(track.length / 3);
+  if (ts == null || n < 1 || !track[2]) return null;
+  let lo = 0, hi = n - 1;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (track[mid * 3 + 2] < ts) lo = mid + 1; else hi = mid; }
+  const P = i => ({ la: track[i * 3], lo: track[i * 3 + 1], t: track[i * 3 + 2] });
+  const B = P(lo), A = lo > 0 ? P(lo - 1) : null;
+  const round = v => Math.round(v * 1e5) / 1e5;
+  if (B.t === ts) return [round(B.la), round(B.lo)];
+  if (A && B.t > ts) {
+    if (haversineKm(A.la, A.lo, B.la, B.lo) < 0.15) return [round(A.la), round(A.lo)];
+    if (B.t - A.t <= 7200) { const f = (ts - A.t) / (B.t - A.t); return [round(A.la + (B.la - A.la) * f), round(A.lo + (B.lo - A.lo) * f)]; }
+  }
+  const near = [A, B].filter(Boolean).sort((x, y) => Math.abs(x.t - ts) - Math.abs(y.t - ts))[0];
+  return near && Math.abs(near.t - ts) <= 1800 ? [round(near.la), round(near.lo)] : null;
+}
+function openTrackImport(tripId) {
+  const t = tripById(tripId);
+  if (!t || !canWrite) return;
+  lastFocus = document.activeElement;
+  let parsed = null;
+  const err = h('p', { class: 'err', role: 'alert', hidden: true });
+  const info = h('div', { class: 'mono', style: 'display:grid;gap:6px' });
+  const area = h('textarea', { class: 'input', id: 'trk-text', placeholder: 'Cola aqui o conteúdo do ficheiro (GPX, KML, GeoJSON ou o JSON do Google Maps Timeline)', style: 'min-height:120px;font:0.8rem var(--mono)' });
+  const file = h('input', { type: 'file', id: 'trk-file', accept: '.json,.gpx,.kml,.geojson,.txt,application/json,application/gpx+xml,application/vnd.google-earth.kml+xml,text/xml', 'aria-label': 'Escolher ficheiro de percurso' });
+  const assign = h('input', { type: 'checkbox', id: 'trk-assign', checked: true });
+  const applyBtn = h('button', { class: 'btn primary', type: 'button', disabled: true }, 'Aplicar à viagem');
+  const fmt = secs => { const d = new Date(secs * 1000); return `${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`; };
+  const analyse = text => {
+    err.hidden = true; parsed = null; applyBtn.disabled = true; info.replaceChildren();
+    if (!text.trim()) return;
+    try {
+      const pts = parseTrack(text);
+      const b = buildTrack(pts, t.start, t.end);
+      if (!b.flat.length) {
+        err.textContent = b.timed && t.start ? `Li ${pl(pts.length, 'ponto', 'pontos')}, mas nenhum cai nas datas da viagem (${dateText(t)}).` : 'Não encontrei pontos utilizáveis.'; err.hidden = false; return;
+      }
+      if (b.timed && !t.start && b.last - b.first > 120 * 86400) { err.textContent = 'O ficheiro cobre mais de 120 dias. Indica primeiro as datas da viagem (Editar viagem) para eu escolher só esse período.'; err.hidden = false; return; }
+      parsed = b;
+      info.append(...[h('span', {}, `${pl(pts.length, 'ponto lido', 'pontos lidos')}${b.timed && t.start ? `, ${pl(b.inRange, 'dentro das datas da viagem', 'dentro das datas da viagem')}` : ''}.`),
+        h('span', {}, `Percurso a guardar: ${pl(b.flat.length / 3, 'ponto', 'pontos')}${b.timed ? ` · ${fmt(b.first)} a ${fmt(b.last)}` : ''}.`),
+        b.timed ? null : h('span', {}, 'O ficheiro não tem horas: desenho o percurso, mas não consigo associar fotos.'),
+        !t.start && b.timed ? h('span', {}, 'A viagem não tem datas: vou preenchê-las com as do percurso.') : null].filter(Boolean));
+      applyBtn.disabled = false;
+    } catch (e) { err.textContent = 'Não reconheci o formato. Aceito GPX, KML, GeoJSON e o JSON do Google Maps Timeline.'; err.hidden = false; }
+  };
+  area.addEventListener('input', () => { clearTimeout(area._t); area._t = setTimeout(() => analyse(area.value), 300); });
+  file.addEventListener('change', async () => {
+    const f = file.files[0]; if (!f) return;
+    try { area.value = f.size < 2e6 ? await f.text() : ''; if (f.size >= 2e6) { info.textContent = 'A ler ficheiro grande…'; analyse(await f.text()); } else analyse(area.value); }
+    catch (e) { err.textContent = 'Não foi possível ler o ficheiro.'; err.hidden = false; }
+  });
+  applyBtn.addEventListener('click', async () => {
+    if (!parsed) return;
+    applyBtn.disabled = true;
+    let matched = 0, noTime = 0, hadGps = 0;
+    const ok = await saveTrip(tripId, cur => {
+      const patch = { track: parsed.flat };
+      if (assign.checked && parsed.timed) {
+        patch.photos = (cur.photos || []).map(p => {
+          if (Number.isFinite(p.lat) && Number.isFinite(p.lng) && !p.gt) { hadGps++; return p; }
+          if (!p.time) { noTime++; return p; }
+          const g = trackLocate(parsed.flat, p);
+          if (!g) return p;
+          matched++; return { ...p, lat: g[0], lng: g[1], gt: 1 };
+        });
+      }
+      if (!cur.start && parsed.timed) { const a = new Date(parsed.first * 1000).toISOString().slice(0, 10), z = new Date(parsed.last * 1000).toISOString().slice(0, 10); patch.start = a; patch.end = z; }
+      return patch;
+    });
+    if (ok) { closeModal(); setStatus(`Percurso guardado.${assign.checked ? ` ${pl(matched, 'foto associada', 'fotos associadas')}${noTime ? `; ${pl(noTime, 'foto sem hora guardada', 'fotos sem hora guardada')} (volta a adicioná-las para usar a hora)` : ''}.` : ''}`, 7000); }
+    else { applyBtn.disabled = false; err.textContent = 'Não foi possível guardar. Tenta outra vez.'; err.hidden = false; }
+  });
+  const hasTrack = t.track && t.track.length >= 6;
+  const rm = hasTrack ? h('button', { class: 'btn quiet danger', type: 'button', onclick: async () => { const ok = await saveTrip(tripId, () => ({ track: [] })); if (ok) { closeModal(); setStatus('Percurso removido.', 3000); } } }, 'Remover percurso atual') : null;
+  modal = h('div', { class: 'backdrop', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Importar percurso', onmousedown: e => { if (e.target === modal) closeModal(); } },
+    h('div', { class: 'panel wide' }, h('h2', {}, 'Importar percurso'),
+      h('p', { class: 'help' }, 'No telemóvel: Google Maps → o teu perfil → Linha cronológica → Definições → Exportar dados da Linha cronológica (ficheiro JSON). Também aceito GPX e KML. Escolhe o ficheiro ou cola o texto. Uso só os dias desta viagem' + (t.start ? ` (${dateText(t)})` : '') + '.'),
+      h('div', { class: 'f' }, h('label', { for: 'trk-file' }, 'FICHEIRO'), file),
+      h('div', { class: 'f' }, h('label', { for: 'trk-text' }, 'OU COLAR O TEXTO'), area),
+      info,
+      h('label', { class: 'mono', style: 'display:flex;gap:8px;align-items:center;color:var(--ink)' }, assign, 'Associar às fotos sem GPS, pela hora a que foram tiradas'),
+      err,
+      h('div', { class: 'actions' }, h('div', { class: 'row' }, applyBtn, h('button', { class: 'btn quiet', type: 'button', onclick: closeModal }, 'Cancelar')), rm)));
+  lockScroll(); document.body.append(modal); area.focus();
+}
+
 /* ---------- fotos: leitura, envio ---------- */
 const fileInput = $('#file-input');
 const importInput = $('#import-input');
@@ -664,10 +868,12 @@ async function addEntries(tripId, entries, label) {
       const { blob, w, h: hh } = await prepare(entries[i].file);
       const r = await assets.upload(blob);
       const rec = { id: r.id, w, h: hh, caption: '' };
+      if (entries[i].time) rec.time = entries[i].time;
       const tb = await makeThumb(blob);
       if (tb && tb.size < blob.size) { try { rec.th = (await assets.upload(tb)).id; } catch (e) { /* sem miniatura */ } }
       if (entries[i].date) rec.date = entries[i].date;
       if (Number.isFinite(entries[i].lat) && Number.isFinite(entries[i].lng)) { rec.lat = Math.round(entries[i].lat * 1e5) / 1e5; rec.lng = Math.round(entries[i].lng * 1e5) / 1e5; }
+      else { const cur = tripById(tripId); const g = cur && cur.track ? trackLocate(cur.track, rec) : null; if (g) { rec.lat = g[0]; rec.lng = g[1]; rec.gt = 1; } }
       added.push(rec);
     } catch (e) {
       failMsg = upMsg[e && e.code] || 'Não foi possível enviar uma das fotos.';
@@ -690,7 +896,7 @@ async function addPhotos(tripId, files) {
   uploading = true;
   try {
     const entries = [];
-    for (const f of files) { const ex = await readExif(f); entries.push({ file: f, date: ex && ex.date || '', lat: ex ? ex.lat : null, lng: ex ? ex.lng : null }); }
+    for (const f of files) { const ex = await readExif(f); entries.push({ file: f, date: ex && ex.date || '', time: ex && ex.time || '', lat: ex ? ex.lat : null, lng: ex ? ex.lng : null }); }
     const r = await addEntries(tripId, entries);
     if (r.added) setStatus((r.ok ? pl(r.added, 'foto guardada', 'fotos guardadas') + '.' : 'Fotos enviadas, mas não ficaram associadas à viagem.') + (r.failMsg ? ' ' + r.failMsg : '') + (r.filled ? ' Preenchi as datas da viagem.' : ''), 5000);
     else setStatus(r.failMsg || 'Nenhuma foto enviada.', 4500);
@@ -748,7 +954,7 @@ async function openImport(files) {
         if (!firstId) firstId = ref.id;
         made++;
         await new Promise(r => setTimeout(r, 0));
-        const r = await addEntries(ref.id, p.items.map(x => ({ file: x.file, date: x.date, lat: x.lat, lng: x.lng })), `Viagem ${i + 1} de ${chosen.length}: a enviar`);
+        const r = await addEntries(ref.id, p.items.map(x => ({ file: x.file, date: x.date, time: x.exif ? x.time : '', lat: x.lat, lng: x.lng })), `Viagem ${i + 1} de ${chosen.length}: a enviar`);
         lost += p.items.length - r.added;
         if (r.failMsg && /espaço|Demasiados/.test(r.failMsg)) { err.textContent = r.failMsg; err.hidden = false; break; }
       }

@@ -138,6 +138,7 @@ function median(a) { const s = a.slice().sort((x, y) => x - y); const n = s.leng
 /* Localização de uma viagem: coordenadas guardadas, GPS das fotos ou centro do país */
 function tripPoint(t) {
   if (Number.isFinite(t.lat) && Number.isFinite(t.lng)) return { lat: t.lat, lng: t.lng, src: 'manual' };
+  if (Array.isArray(t.track) && t.track.length >= 6) { const la = [], lo = []; for (let i = 0; i + 2 < t.track.length; i += 3) { la.push(t.track[i]); lo.push(t.track[i + 1]); } return { lat: median(la), lng: median(lo), src: 'percurso' }; }
   const g = (t.photos || []).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
   if (g.length) return { lat: median(g.map(p => p.lat)), lng: median(g.map(p => p.lng)), src: 'fotos' };
   const c = findCountry(t.country);
