@@ -12,7 +12,7 @@
 - Modo discreto (desfoca fotos e textos)
 
 ## Estrutura
-- `src/` código-fonte (`world.js` mapa e países, `lib.js` funções puras, `book.js` motor do livro, `fonts/` tipos de letra (OFL) embebidos, `app.js` interface, `style.css`, `template.html`, `build.js`)
+- `src/` código-fonte (`world.js` mapa e países, `lib.js` funções puras, `geodata.js`/`geomap.js` mapa cartográfico real (Natural Earth 1:10M, gerado por `src/geo/build-geo.js`), `book.js` motor do livro, `fonts/` tipos de letra (OFL) embebidos, `app.js` interface, `style.css`, `template.html`, `build.js`)
 - `dist/album-de-viagens.html` página já montada
 - `tests/` testes (`src/test-lib.js` para as funções puras; `tests/test-page.py` com Playwright e um `window.claude` simulado)
 
@@ -30,3 +30,7 @@ node src/build.js dist/album-de-viagens.html       # versão para artefacto Clau
 
 ## Testes
 `node src/test-lib.js src` corre os testes das funções puras. Os scripts em `tests/` (Playwright) foram escritos para o ambiente de desenvolvimento: têm caminhos fixos para ficheiros temporários e, no caso dos `standalone`, esperam um servidor local na porta 8123 com `docs/index.html`. É preciso ajustá-los para correr noutra máquina.
+
+## Mapa
+
+O mapa usa dados do [Natural Earth](https://www.naturalearthdata.com/) (domínio público), simplificados e embebidos em `src/geodata.js` (sem pedidos externos). Para regenerar: `node src/geo/build-geo.js <pasta com os geojson do Natural Earth>`. Escala 1:10M: nomes de cidades e fronteiras, sem ruas.

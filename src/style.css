@@ -11,10 +11,10 @@
   --blue: #2D4B73;
   --stripe-a: #C8341B;
   --stripe-b: #1F3F9E;
-  --sea: #E1E9E7;
+  --sea: #D6E3E8;
   --land: #FFFFFF;
-  --coast: #A5B5B1;
-  --grat: #CFDAD7;
+  --coast: #B4AE9F;
+  --grat: #C6D6DC;
   --scrim: rgb(8 12 11 / 0.94);
   --scrim-ink: #EEF2F0;
   --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
@@ -26,14 +26,14 @@
     --bg: #131211; --surface: #1C1B19; --ink: #EDEAE3; --ink-2: #A09A8E; --line: #302E2A;
     --hover: #262522; --accent: #E58A62; --on-accent: #1B0A05; --blue: #9DB4D8;
     --stripe-a: #E2543A; --stripe-b: #4A6BE0;
-    --sea: #131E1C; --land: #22322E; --coast: #3B4F4A; --grat: #1C2A27; color-scheme: dark;
+    --sea: #101B21; --land: #292825; --coast: #4A473F; --grat: #182630; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #131211; --surface: #1C1B19; --ink: #EDEAE3; --ink-2: #A09A8E; --line: #302E2A;
   --hover: #262522; --accent: #E58A62; --on-accent: #1B0A05; --blue: #9DB4D8;
   --stripe-a: #E2543A; --stripe-b: #4A6BE0;
-  --sea: #131E1C; --land: #22322E; --coast: #3B4F4A; --grat: #1C2A27; color-scheme: dark;
+  --sea: #101B21; --land: #292825; --coast: #4A473F; --grat: #182630; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -360,6 +360,12 @@ body.discreet .note, body.discreet .txt, body.discreet .day textarea, body.discr
 /* mapa */
 .pg .mapfull { position: absolute; overflow: hidden; border-radius: var(--round); background: var(--rule); }
 .pg .mapfull svg, .pg .mapfull img.mapimg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.pg .stops { position: absolute; display: flex; flex-direction: column; gap: 1.5cqw; overflow: hidden; }
+.pg .stops .st { display: flex; gap: 1.2cqw; align-items: flex-start; }
+.pg .stops i { flex: none; width: 2.6cqw; height: 2.6cqw; border-radius: 50%; background: var(--accent); color: var(--paper); font: 700 1.2cqw/2.6cqw var(--fb); text-align: center; font-style: normal; }
+.pg.t-noite .stops i { color: #111; }
+.pg .stops b { display: block; font-family: var(--fd); font-weight: 400; font-size: 1.95cqw; line-height: 1.1; }
+.pg .stops small { display: block; font-family: var(--fm); font-size: 0.95cqw; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); margin-top: 0.3cqw; }
 .pg .maplab { position: absolute; left: 0; bottom: 0; background: var(--paper); padding: 1.8cqw 2.4cqw 0 0; display: flex; flex-direction: column; gap: 0.4cqw; z-index: 2; }
 .pg .maplab b { font-family: var(--fd); font-weight: 400; font-size: 2.8cqw; line-height: 1.05; }
 .pg.sr .maplab { left: auto; right: 0; padding: 1.8cqw 0 0 2.4cqw; }
@@ -418,3 +424,41 @@ body.discreet .note, body.discreet .txt, body.discreet .day textarea, body.discr
 .hero .where { color: #fff; }
 .day-h b { font: 400 1.5rem/1 var(--display); }
 h1, h2, h3, b.num { font-synthesis: none; }
+
+/* mapa cartográfico e página da viagem */
+.gmap { position: relative; width: 100%; height: min(68vh, 620px); min-height: 340px; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--sea); touch-action: none; }
+.gmap canvas { display: block; outline: none; cursor: grab; touch-action: none; }
+.gmap.big { height: min(72vh, 720px); }
+.gmap.small { height: 300px; min-height: 240px; }
+.gmap .mapctl { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.gmap .mapctl button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 1.15rem; cursor: pointer; box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); }
+.gmap .mapctl button:hover { background: var(--hover); }
+.tstats { display: flex; flex-wrap: wrap; gap: 8px 38px; padding: 18px 2px 4px; margin: 0 0 6px; border-top: 1px solid var(--line); }
+.tstats b { display: block; font: 400 2.3rem/1 var(--display); letter-spacing: -0.01em; }
+.tstats span { font: 500 0.72rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.wrap.wide { max-width: 1380px; }
+.tripgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 46%); gap: 36px; align-items: start; }
+.tripmap { position: sticky; top: 14px; height: calc(100vh - 28px); min-height: 420px; }
+.tripmap .gmap { height: 100%; }
+.feed { display: grid; gap: 30px; min-width: 0; }
+.itin ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.itin button { display: flex; gap: 14px; align-items: center; width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 10px; cursor: pointer; color: var(--ink); }
+.itin button:hover { background: var(--hover); }
+.itin i, .stopchip i { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font: 700 0.8rem/26px var(--body); text-align: center; font-style: normal; }
+.itin b { display: block; font: 400 1.25rem/1.1 var(--display); }
+.itin small { font: 500 0.72rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.stopchip { display: inline-flex; gap: 7px; align-items: center; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 2px 11px 2px 3px; font: 600 0.8rem var(--body); color: var(--ink); cursor: pointer; }
+.stopchip i { width: 20px; height: 20px; font-size: 0.68rem; line-height: 20px; }
+.stopchip:hover { background: var(--hover); }
+.day { scroll-margin-top: 16px; }
+.wall.just { column-width: auto; column-gap: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.wall.just figure { margin: 0; max-width: calc(var(--ar) * 340px); flex: calc(var(--ar) * 100) 1 calc(var(--ar) * 190px); min-width: 0; }
+.wall.just::after { content: ""; flex: 999 1 0; }
+.wall.just .photo { height: 100%; }
+.wall.just .photo img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: auto !important; }
+.wall.just figcaption { display: none; }
+@media (max-width: 980px) {
+  .tripgrid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .tripmap { position: sticky; top: 0; z-index: 25; order: -1; height: 38vh; min-height: 260px; margin: 0 -2px; }
+  .tripmap .gmap { border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.18); }
+}

@@ -16,7 +16,7 @@ for (const k of Object.keys(FONT_META)) {
   const [fam, w, st] = FONT_META[k];
   fonts[k] = `@font-face{font-family:"${fam}";font-weight:${w};font-style:${st};font-display:swap;src:url(data:font/woff;base64,${fs.readFileSync(path.join(d, 'fonts', k + '.woff')).toString('base64')}) format("woff")}`;
 }
-const js = (standalone ? rd('shim.js') + '\n' : '') + rd('world.js') + '\n' + rd('lib.js') + '\nconst FONT_FACES = ' + JSON.stringify(fonts) + ';\nconst BOOK_CSS = ' + JSON.stringify(m[1]) + ';\n' + rd('book.js') + '\n' + rd('app.js');
+const js = (standalone ? rd('shim.js') + '\n' : '') + rd('world.js') + '\n' + rd('lib.js') + '\n' + rd('geodata.js') + '\n' + rd('geomap.js') + '\nconst FONT_FACES = ' + JSON.stringify(fonts) + ';\nconst BOOK_CSS = ' + JSON.stringify(m[1]) + ';\n' + rd('book.js') + '\n' + rd('app.js');
 const safe = js.replace(/<\/script/gi, '<\\/script');
 fs.writeFileSync(path.join(d, 'bundle.js'), safe);
 const html = rd('template.html').replace('/*CSS*/', () => css).replace('/*JS*/', () => safe);

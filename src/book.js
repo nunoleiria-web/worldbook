@@ -316,8 +316,13 @@ function bookPageHTML(page, book, idx, ctx) {
     }
     case 'map': {
       const box = bkBox(th, side, H, false);
+      const stops = (ctx.stops || []).slice(0, 12), hasList = stops.length > 1;
+      const lw = hasList ? box.w * 0.3 : 0, gp = hasList ? 3 : 0, mw = box.w - lw - gp;
+      const outerLeft = side !== 'R';
+      const mx = hasList && outerLeft ? box.x + lw + gp : box.x, lx = hasList ? (outerLeft ? box.x : box.x + mw + gp) : 0;
       const place = [t.place, t.country].filter(Boolean).join(', ');
-      return open('map', `<div class="mapfull" style="left:${bkPct(box.x, W)};top:${bkPct(box.y, H)};width:${bkPct(box.w, W)};height:${bkPct(box.h, H)}">${ctx.mapSVG(box.w / box.h)}<div class="maplab"><span class="mn">Percurso</span><b>${esc(place || t.title)}</b></div></div>` + folio);
+      const list = hasList ? `<div class="stops" style="left:${bkPct(lx, W)};top:${bkPct(box.y, H)};width:${bkPct(lw, W)};height:${bkPct(box.h, H)}"><span class="mn">Percurso</span>${stops.map(s => `<div class="st"><i>${s.n}</i><span><b>${esc(s.name)}</b>${s.d0 ? `<small>${esc(s.d1 && s.d1 !== s.d0 ? bkDayShort(s.d0) + ' – ' + bkDayShort(s.d1) : bkDayShort(s.d0))}</small>` : ''}</span></div>`).join('')}</div>` : '';
+      return open('map', `<div class="mapfull" style="left:${bkPct(mx, W)};top:${bkPct(box.y, H)};width:${bkPct(mw, W)};height:${bkPct(box.h, H)}">${ctx.mapSVG(mw / box.h)}${hasList ? '' : `<div class="maplab"><span class="mn">Percurso</span><b>${esc(place || t.title)}</b></div>`}</div>${list}` + folio);
     }
     case 'day': {
       const box = bkBox(th, side, H, false);

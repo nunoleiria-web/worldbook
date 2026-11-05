@@ -47,9 +47,9 @@ let db = null, assets = null, downloads = null, canWrite = false;
 let trips = [], loaded = false, loadError = false, slow = false, noDb = false;
 let view = { name: 'home', id: null };
 const ui = { tab: 'mapa', q: '', tag: '', fav: false, layout: 'grelha', year: new Date().getFullYear(), pYear: '', pFav: false, route: true, sel: null, discreet: false };
-const mapState = { x: 0, y: 0, w: MAP_W };
+const mapState = { v: null };
 let lastDatas = [], lastIds = [];
-let lb = null, modal = null, bk = null, lastFocus = null;
+let lb = null, modal = null, bk = null, lastFocus = null, spy = null;
 let statusTimer = null, uploading = false;
 const queues = new Map();
 const tripById = id => trips.find(t => t.id === id);
@@ -72,143 +72,18 @@ function setStatus(text, ms) {
 function lockScroll() { document.body.style.overflow = 'hidden'; }
 function unlockScroll() { if (!modal && !lb && !bk) document.body.style.overflow = ''; }
 
-/* ---------- mapa ---------- */
-const GRAT_D = (() => {
-  let d = '';
-  for (let lo = -180; lo <= 180; lo += 30) { const a = project(lo, LAT_TOP), b = project(lo, LAT_BOT); d += `M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`; }
-  for (let la = -30; la <= 60; la += 30) { const a = project(-180, la), b = project(180, la); d += `M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`; }
-  return d;
-})();
-const LAND_D = LAND.map(polyPath).join('');
-const SEA_D = SEAS.map(polyPath).join('');
-const BOOK_PAL = { sea: '#E1E9E7', land: '#FFFFFF', coast: '#A5B5B1', grat: '#CFDAD7', pin: '#C8341B', dot: '#1F3F9E', route: '#1F3F9E' };
-
-function fitView(points, minW, aspect) {
-  if (!points.length) return { x: 0, y: 0, w: MAP_W };
-  const ar = aspect || MAP_W / MAP_H;
-  const xs = points.map(p => project(p.lng, p.lat)[0]), ys = points.map(p => project(p.lng, p.lat)[1]);
-  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-  const w = Math.min(MAP_W, Math.max(minW || 220, (x1 - x0) * 1.5, (y1 - y0) * 1.5 * ar));
-  const hh = w / ar;
-  return { x: Math.max(0, Math.min(MAP_W - w, (x0 + x1) / 2 - w / 2)), y: Math.max(0, Math.min(MAP_H - hh, (y0 + y1) / 2 - hh / 2)), w };
-}
-
-function createMap(o) {
-  const pal = o.palette || null;
-  const col = (k, v) => pal ? pal[k] : `var(--${v})`;
-  const svg = svgEl('svg', { viewBox: `0 0 ${MAP_W} ${MAP_H}`, role: 'img', 'aria-label': o.label || 'Mapa-múndi', xmlns: SVGNS });
-  svg.append(
-    svgEl('rect', o.aspect ? { x: -4000, y: -4000, width: 9000, height: 9000, fill: col('sea', 'sea') } : { x: 0, y: 0, width: MAP_W, height: MAP_H, fill: col('sea', 'sea') }),
-    svgEl('path', { d: GRAT_D, fill: 'none', stroke: col('grat', 'grat'), 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }),
-    svgEl('path', { d: LAND_D, fill: col('land', 'land'), stroke: col('coast', 'coast'), 'stroke-width': 1, 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }),
-    svgEl('path', { d: SEA_D, fill: col('sea', 'sea'), stroke: col('coast', 'coast'), 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }));
-  const gRoute = svgEl('g'), gDots = svgEl('g'), gPins = svgEl('g'), gPick = svgEl('g');
-  svg.append(gRoute, gDots, gPins, gPick);
-
-  const pins = o.pins || [];
-  if (o.route && pins.length > 1) {
-    const d = pins.map((p, i) => { const q = project(p.lng, p.lat); return (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join('');
-    gRoute.append(svgEl('path', { d, fill: 'none', stroke: col('route', 'blue'), 'stroke-width': 1.6, 'stroke-dasharray': '6 5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.85, 'vector-effect': 'non-scaling-stroke' }));
-  }
-  const scaled = [];
-  if (o.track && o.track.length >= 6) {
-    let d = '';
-    for (let i = 0; i + 2 < o.track.length; i += 3) { const q = project(o.track[i + 1], o.track[i]); d += (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
-    gRoute.append(svgEl('path', { d, fill: 'none', stroke: col('route', 'blue'), 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.9, 'vector-effect': 'non-scaling-stroke' }));
-  }
-  for (const d of (o.dots || [])) {
-    const q = project(d.lng, d.lat);
-    const g = svgEl('g', { transform: `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)})` });
-    g.append(svgEl('circle', { r: 3.5, fill: col('dot', 'blue'), stroke: pal ? '#fff' : 'var(--surface)', 'stroke-width': 1 }));
-    gDots.append(g); scaled.push([g, q]);
-  }
-  for (const p of pins) {
-    const q = project(p.lng, p.lat);
-    const g = svgEl('g', { class: 'pin', transform: `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)})`, 'data-id': p.id });
-    if (!o.static) { g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button'); g.setAttribute('aria-label', p.label || 'Viagem'); }
-    if (p.label && !o.static) g.append(svgEl('title', {}, document.createTextNode(p.label)));
-    g.append(svgEl('circle', { class: 'ring', r: p.sel ? 13 : 10, fill: 'none', stroke: p.sel ? col('route', 'blue') : 'none', 'stroke-width': 2.5 }));
-    g.append(svgEl('circle', { r: 7, fill: col('pin', 'accent'), stroke: pal ? '#fff' : 'var(--surface)', 'stroke-width': 2.5 }));
-    if (!o.static) {
-      g.addEventListener('pointerdown', e => e.stopPropagation());
-      g.addEventListener('click', e => { e.stopPropagation(); o.onPin && o.onPin(p.id); });
-      g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); o.onPin && o.onPin(p.id); } });
-    }
-    gPins.append(g); scaled.push([g, q]);
-  }
-
-  let { x: vx, y: vy, w: vw } = o.view || { x: 0, y: 0, w: MAP_W };
-  const box = h('div', { class: 'mapbox' + (o.onPick ? ' pick' : '') });
-  const vh = () => vw / (o.aspect || MAP_W / MAP_H);
-  const clampView = () => { vw = Math.max(20, Math.min(MAP_W, vw)); vx = Math.max(0, Math.min(MAP_W - vw, vx)); vy = Math.max(0, Math.min(MAP_H - vh(), vy)); };
-  const widthPx = () => svg.getBoundingClientRect().width || 700;
-  function apply(silent) {
-    clampView();
-    svg.setAttribute('viewBox', `${vx.toFixed(2)} ${vy.toFixed(2)} ${vw.toFixed(2)} ${vh().toFixed(2)}`);
-    const k = (o.static ? vw / 900 : vw / widthPx());
-    for (const [g, q] of scaled) g.setAttribute('transform', `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)}) scale(${k.toFixed(4)})`);
-    box.classList.toggle('zoomed', vw < MAP_W - 1);
-    if (!silent && o.onView) o.onView({ x: vx, y: vy, w: vw });
-  }
-  function drawPick(pk) {
-    gPick.replaceChildren();
-    if (!pk) return;
-    const q = project(pk.lng, pk.lat);
-    const g = svgEl('g', { transform: `translate(${q[0].toFixed(1)} ${q[1].toFixed(1)})`, 'data-pick': '1' });
-    g.append(svgEl('circle', { r: 10, fill: 'none', stroke: 'var(--blue)', 'stroke-width': 2.5 }), svgEl('circle', { r: 4, fill: 'var(--accent)' }));
-    gPick.append(g); scaled.push([g, q]); apply(true);
-  }
-  box.append(svg);
-  if (!o.static) {
-    const zoom = (f, cx, cy) => {
-      const r = svg.getBoundingClientRect();
-      const fx = cx == null ? 0.5 : (cx - r.left) / r.width, fy = cy == null ? 0.5 : (cy - r.top) / r.height;
-      const px = vx + fx * vw, py = vy + fy * vh();
-      vw = Math.max(20, Math.min(MAP_W, vw * f)); vx = px - fx * vw; vy = py - fy * vh(); apply();
-    };
-    box.append(h('div', { class: 'mapctl' },
-      h('button', { type: 'button', 'aria-label': 'Aproximar', onclick: () => zoom(0.6) }, '+'),
-      h('button', { type: 'button', 'aria-label': 'Afastar', onclick: () => zoom(1.67) }, '−'),
-      h('button', { type: 'button', 'aria-label': 'Ver o mundo todo', onclick: () => { vx = 0; vy = 0; vw = MAP_W; apply(); } }, '⟲')));
-    let drag = null;
-    svg.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && e.button !== 0) return; drag = { id: e.pointerId, x: e.clientX, y: e.clientY, vx, vy, moved: false }; });
-    svg.addEventListener('pointermove', e => {
-      if (!drag || e.pointerId !== drag.id) return;
-      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-      if (!drag.moved && Math.hypot(dx, dy) < 5) return;
-      drag.moved = true;
-      if (vw >= MAP_W - 1) return;
-      try { svg.setPointerCapture(e.pointerId); } catch (er) { /* ignora */ }
-      box.classList.add('dragging');
-      const k = vw / svg.getBoundingClientRect().width;
-      vx = drag.vx - dx * k; vy = drag.vy - dy * k; apply();
-    });
-    const end = e => {
-      if (!drag || (e && e.pointerId !== drag.id)) return;
-      const was = drag; drag = null; box.classList.remove('dragging');
-      if (e && e.type === 'pointerup' && !was.moved && o.onPick) {
-        const r = svg.getBoundingClientRect();
-        const [lo, la] = unproject(vx + (e.clientX - r.left) / r.width * vw, vy + (e.clientY - r.top) / r.height * vh());
-        o.onPick(la, lo);
-      }
-    };
-    svg.addEventListener('pointerup', end);
-    svg.addEventListener('pointercancel', () => { drag = null; box.classList.remove('dragging'); });
-    svg.addEventListener('wheel', e => { if (!(e.ctrlKey || e.metaKey)) return; e.preventDefault(); zoom(e.deltaY < 0 ? 0.8 : 1.25, e.clientX, e.clientY); }, { passive: false });
-    if (window.ResizeObserver) new ResizeObserver(() => apply(true)).observe(box);
-  }
-  apply(true);
-  drawPick(o.pick);
-  return { el: box, setPick: drawPick, svg };
-}
-
-function mapSVGString(t, aspect, th) {
-  const pt = tripPoint(t);
-  if (!pt) return '';
+/* ---------- mapa do livro (imagem estática) ---------- */
+function bookMapImg(t, asp, th) {
+  const info = tripStops(t), pt = tripPoint(t);
+  let marks = info.stops.map(s => ({ id: s.id, lat: s.lat, lng: s.lng, n: s.n, label: s.name, r: 12 }));
+  { const seen = new Set(); for (const m of marks) { if (m.label && seen.has(m.label)) m.label = ''; else if (m.label) seen.add(m.label); } }
+  if (!marks.length && pt) marks = [{ id: 'pt', lat: pt.lat, lng: pt.lng, label: '', r: 11 }];
+  if (!marks.length) return '';
   const dots = (t.photos || []).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-  const pal = th ? { sea: th.sea, land: th.land, coast: th.coast, grat: th.grat, pin: th.accent, dot: th.ink, route: th.accent } : BOOK_PAL;
-  const m = createMap({ static: true, palette: pal, aspect, pins: [{ id: t.id, lat: pt.lat, lng: pt.lng }], dots, track: t.track, view: fitView([pt].concat(dots, trackPoints(t)), 300, aspect) });
-  return m.svg.outerHTML;
+  const pal = { sea: th.sea, land: th.land, coast: th.coast, grat: th.grat, accent: th.accent, ink: th.ink, mute: th.mute, paper: th.paper, dark: !!th.dark };
+  const W = 640, H = Math.round(640 / asp);
+  const url = gmRenderImage({ marks, routePoints: info.routePts, dots, visited: new Set(info.countries), fitPoints: marks.concat(info.routePts, dots), pad: 70, maxZ: 8.5 }, W, H, 2.7, pal);
+  return `<img class="mapimg" src="${url}" alt="Mapa do percurso">`;
 }
 
 /* ---------- estatísticas ---------- */
@@ -314,11 +189,12 @@ function renderMapTab() {
   root.append(h('div', { class: 'bar' },
     h('button', { class: 'chip', type: 'button', 'aria-pressed': ui.route ? 'true' : 'false', onclick: () => { ui.route = !ui.route; render(); } }, 'Percurso entre viagens'),
     h('span', { class: 'mono' }, located.length ? pl(located.length, 'viagem no mapa', 'viagens no mapa') + '. Usa + e − para aproximar.' : 'Ainda nenhuma viagem tem localização.')));
-  const m = createMap({
-    pins: located.map(x => ({ id: x.t.id, lat: x.pt.lat, lng: x.pt.lng, label: x.t.title + (dateText(x.t) ? ' · ' + dateText(x.t) : ''), sel: ui.sel === x.t.id })),
-    route: ui.route, view: mapState, onView: v => Object.assign(mapState, v), label: 'Mapa das viagens',
-    onPin: id => { ui.sel = id; render(); }
-  });
+  const visitedCodes = new Set(trips.map(t => (findCountry(t.country) || {}).code).filter(Boolean));
+  for (const x of located) for (const s of tripStops(x.t).stops) if (s.code) visitedCodes.add(s.code);
+  const marks = located.map(x => { const c = (x.t.photos || []).find(p => p.id === coverId(x.t)); return { id: x.t.id, lat: x.pt.lat, lng: x.pt.lng, label: x.t.title, r: 18, sel: ui.sel === x.t.id, photo: c && !ui.discreet ? blobUrl(c.th || c.id) : null }; });
+  const m = createGeoMap({ marks, routePoints: ui.route ? located.map(x => ({ lat: x.pt.lat, lng: x.pt.lng })) : null, visited: visitedCodes, fitPoints: marks, label: 'Mapa das viagens', wheel: 'ctrl', pad: 90, maxZ: 6,
+    view: mapState.v || null, onView: v => { mapState.v = { cx: v.cx, cy: v.cy, z: v.z }; }, onPin: id => { ui.sel = id; render(); } });
+  m.el.classList.add('big');
   root.append(m.el);
   const note = h('div', { class: 'mapnote' });
   const sel = ui.sel && tripById(ui.sel);
@@ -450,7 +326,7 @@ function renderYearTab() {
 
 /* separador Fotos */
 function photoFig(t, p, onOpen) {
-  return h('figure', {},
+  return h('figure', { style: (p.w && p.h) ? `--ar:${(p.w / p.h).toFixed(3)}` : '--ar:1.5' },
     h('button', { class: 'photo', type: 'button', 'aria-label': 'Abrir foto' + (p.caption ? ': ' + p.caption : ''), onclick: onOpen },
       h('img', { src: blobUrl(p.th || p.id), alt: p.caption || 'Foto de ' + t.title, loading: 'lazy', decoding: 'async', style: (p.w && p.h) ? `aspect-ratio:${p.w}/${p.h}` : null })),
     p.fav ? h('span', { class: 'heart', 'aria-label': 'Favorita' }, '♥') : null,
@@ -515,39 +391,56 @@ function renderTrip() {
       canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTrackImport(t.id) }, t.track && t.track.length >= 6 ? 'Atualizar percurso' : 'Importar percurso') : null,
       downloads && photos.length ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportPdf(t.id) }, 'PDF') : null)));
 
-  const pt = tripPoint(t);
-  if (pt) {
-    const dots = photos.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-    const m = createMap({ pins: [{ id: t.id, lat: pt.lat, lng: pt.lng, label: t.title }], dots, track: t.track, view: fitView([pt].concat(dots, trackPoints(t)), (t.track && t.track.length >= 6) ? 30 : 260), label: 'Mapa da viagem', onPin: () => {} });
-    root.append(h('div', { class: 'trip-mini' }, m.el,
-      h('p', { class: 'mono', style: 'margin:8px 0 0' }, (t.track && t.track.length >= 6 ? `Percurso importado (${pl(t.track.length / 3, 'ponto', 'pontos')}). ` : '') + (pt.src === 'manual' ? 'Local marcado por ti.' : pt.src === 'percurso' ? 'Local calculado a partir do percurso.' : pt.src === 'fotos' ? 'Local calculado a partir do GPS das fotos' + (dots.length ? ` (${pl(dots.length, 'foto', 'fotos')} com GPS).` : '.') : 'Centro do país. Marca o sítio exato ao editar a viagem.'))));
-  }
-
   const days = tripDays(t);
   const byDay = new Map(), loose = [];
   for (const p of photos) { if (p.date && days.includes(p.date)) { if (!byDay.has(p.date)) byDay.set(p.date, []); byDay.get(p.date).push(p); } else loose.push(p); }
   const order = orderedPhotos(t).map(p => ({ tid: t.id, pid: p.id }));
   const openAt = p => openLightbox(order, order.findIndex(x => x.pid === p.id));
   const showAll = days.length <= 45;
+
+  /* mapa, paragens e estatísticas */
+  const info = tripStops(t), pt = tripPoint(t), stopById = Object.fromEntries(info.stops.map(s => [s.id, s]));
+  let marks = info.stops.map(s => { const ph = photos.find(p => s.photos.includes(p.id)); return { id: s.id, lat: s.lat, lng: s.lng, n: s.n, label: s.name, r: 15, photo: ph && !ui.discreet ? blobUrl(ph.th || ph.id) : null }; });
+  { const seen = new Set(); for (const m of marks) { if (m.label && seen.has(m.label)) m.label = ''; else if (m.label) seen.add(m.label); } }
+  if (!marks.length && pt) marks = [{ id: 'pt', lat: pt.lat, lng: pt.lng, label: t.title, r: 13 }];
+  const dots = photos.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  const stats = [[dc || days.length || 1, (dc || days.length || 1) === 1 ? 'dia' : 'dias'], photos.length ? [photos.length, photos.length === 1 ? 'foto' : 'fotos'] : null,
+    info.stops.length > 1 ? [info.stops.length, 'paragens'] : null, info.km >= 5 ? [bkNum(info.km), 'km'] : null, info.countries.length ? [info.countries.length, info.countries.length === 1 ? 'país' : 'países'] : null].filter(Boolean);
+  const head = root.querySelector('.trip-head'); if (head) head.querySelector('.acts').before(h('div', { class: 'tstats' }, stats.map(s => h('div', {}, h('b', {}, String(s[0])), h('span', {}, s[1])))));
+  let gm = null;
+  const dayEls = new Map();
+  const focusStop = (id, scroll) => {
+    const s = stopById[id]; if (!s) return;
+    gm && (gm.setSel(id), gm.flyTo(s.lat, s.lng, 8.2));
+    if (scroll) { const d = days.find(x => info.dayStop[x] === id); const el = d && dayEls.get(d); el && el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  };
+  if (marks.length) {
+    gm = createGeoMap({ marks, routePoints: info.routePts, dots, visited: new Set(info.countries), fitPoints: marks.concat(info.routePts, dots), label: 'Mapa da viagem', wheel: 'ctrl', animate: true, pad: 80, maxZ: 8.5, onPin: id => focusStop(id, true), onMove: () => { userMoved = Date.now(); } });
+  }
+  let userMoved = 0;
   const blocks = h('div', { class: 'days' });
+  let prevStop = null;
   for (const d of days) {
     const text = (t.days || {})[d] || '', ps = byDay.get(d) || [];
     if (!showAll && !text && !ps.length) continue;
     if (!canWrite && !text && !ps.length) continue;
     const n = t.start && parseYmd(t.start) ? diffDays(t.start, d) + 1 : null;
-    const empty = !text && !ps.length;
-    const blk = h('section', { class: 'day' + (empty ? ' empty-day' : '') },
-      h('div', { class: 'day-h' }, n && n >= 1 ? h('b', {}, 'Dia ' + n) : null, h('span', { class: 'mono' }, dfmtLong.format(parseYmd(d)))));
+    const empty = !text && !ps.length, st = stopById[info.dayStop[d]];
+    const blk = h('section', { class: 'day' + (empty ? ' empty-day' : ''), id: 'dsec-' + d, 'data-day': d },
+      h('div', { class: 'day-h' }, n && n >= 1 ? h('b', {}, 'Dia ' + n) : null, h('span', { class: 'mono' }, dfmtLong.format(parseYmd(d))),
+        st ? h('button', { class: 'stopchip', type: 'button', onclick: () => focusStop(st.id, false) }, h('i', {}, String(st.n)), st.name) : null));
+    prevStop = st;
+    dayEls.set(d, blk);
     if (canWrite) {
       const ta = h('textarea', { class: 'input', id: 'day-' + d, 'aria-label': 'Nota do dia ' + d, placeholder: 'O que aconteceu neste dia?', style: empty ? 'min-height:44px' : null,
         onchange: e => { const v = e.target.value.trim(); saveTrip(t.id, () => ({ days: { [d]: v } })); } });
       ta.value = text; blk.append(ta);
     } else if (text) blk.append(h('p', { class: 'txt' }, text));
-    if (ps.length) blk.append(h('div', { class: 'wall' }, ps.map(p => photoFig(t, p, () => openAt(p)))));
+    if (ps.length) blk.append(h('div', { class: 'wall just' }, ps.map(p => photoFig(t, p, () => openAt(p)))));
     blocks.append(blk);
   }
   if (loose.length) {
-    const wall = h('div', { class: 'wall' }, loose.map(p => photoFig(t, p, () => openAt(p))));
+    const wall = h('div', { class: 'wall just' }, loose.map(p => photoFig(t, p, () => openAt(p))));
     if (canUpload) wireDrop(wall, t.id);
     blocks.append(h('section', { class: 'day' }, h('div', { class: 'day-h' }, h('b', {}, days.length ? 'Fotos sem dia' : 'Fotos')), wall));
   }
@@ -558,7 +451,24 @@ function renderTrip() {
     if (canUpload) wireDrop(drop, t.id);
     blocks.append(drop);
   }
-  root.append(blocks);
+  const feed = h('div', { class: 'feed' });
+  if (info.stops.length > 1) {
+    feed.append(h('section', { class: 'itin' }, h('h2', { class: 'sec' }, 'Percurso'),
+      h('ol', {}, info.stops.map(s => h('li', {}, h('button', { type: 'button', onclick: () => focusStop(s.id, true) }, h('i', {}, String(s.n)),
+        h('span', {}, h('b', {}, s.name), h('small', {}, s.d0 ? (s.d1 && s.d1 !== s.d0 ? bkDayShort(s.d0) + ' – ' + bkDayShort(s.d1) : bkDayShort(s.d0)) : ''))))))));
+  }
+  feed.append(blocks);
+  if (gm) {
+    root.append(h('div', { class: 'tripgrid' }, feed, h('aside', { class: 'tripmap' }, gm.el)));
+    if (window.IntersectionObserver) {
+      if (spy) spy.disconnect();
+      let cur = null, timer = 0;
+      spy = new IntersectionObserver(es => {
+        for (const e of es) if (e.isIntersecting) { const sid = info.dayStop[e.target.dataset.day]; if (sid && sid !== cur) { cur = sid; clearTimeout(timer); timer = setTimeout(() => { if (Date.now() - userMoved > 3500) focusStop(sid, false); else gm.setSel(sid); }, 350); } }
+      }, { rootMargin: '-30% 0px -60% 0px' });
+      dayEls.forEach(el => spy.observe(el));
+    }
+  } else root.append(feed);
   return root;
 }
 function wireDrop(el, tripId) {
@@ -576,6 +486,8 @@ function render() {
   const y = window.scrollY;
   const page = view.name === 'trip' ? renderTrip() : renderHome();
   if (ui.discreet) page.prepend(h('div', { class: 'discreet-bar', role: 'status' }, h('span', {}, 'Modo discreto ligado: fotos e textos estão desfocados.'), h('button', { class: 'btn sm', type: 'button', onclick: toggleDiscreet }, 'Desligar')));
+  if (spy && view.name !== 'trip') { spy.disconnect(); spy = null; }
+  const wrapEl = document.querySelector('.wrap'); if (wrapEl) wrapEl.classList.toggle('wide', view.name === 'trip');
   $('#app').replaceChildren(page);
   window.scrollTo(0, y);
 }
@@ -1079,7 +991,8 @@ function openTripForm(t) {
     const c = findCountry(f.country.value);
     locInfo.textContent = pick ? `Marcado: ${pick.lat.toFixed(2)}, ${pick.lng.toFixed(2)}` : c ? `Sem marca: uso o centro de ${c.name}. Toca no mapa para marcar o sítio.` : 'Toca no mapa para marcar o sítio, ou indica o país.';
   };
-  const picker = createMap({ pins: [], view: pick ? fitView([pick], 300) : { x: 0, y: 0, w: MAP_W }, pick, label: 'Escolher o local no mapa', onPick: (la, lo) => { pick = { lat: la, lng: lo }; picker.setPick(pick); showLoc(); } });
+  const picker = createGeoMap({ marks: [], pick, fitPoints: pick ? [pick] : [], maxZ: 6, wheel: 'ctrl', label: 'Escolher o local no mapa', onPick: (la, lo) => { pick = { lat: la, lng: lo }; picker.setPick(pick); showLoc(); } });
+  picker.el.classList.add('small');
   f.country.addEventListener('input', showLoc);
   showLoc();
   const clearLoc = h('button', { class: 'btn sm quiet', type: 'button', onclick: () => { pick = null; picker.setPick(null); showLoc(); } }, 'Limpar marca');
@@ -1161,12 +1074,12 @@ function bkCtx(t, o) {
       const p = pm.get(id) || {};
       return blobUrl((o.mini || (r && Math.max(r.w, r.h) < 36)) && p.th ? p.th : id);
     },
+    stops: o.mini ? [] : tripStops(t).stops,
     mapSVG: asp => {
       if (o.mini) return '';
-      const key = [t.id, o.book && o.book.theme, asp.toFixed(2), (t.track || []).length, (t.photos || []).length].join('|');
+      const key = [t.id, o.book && o.book.theme, asp.toFixed(2), (t.track || []).length, (t.photos || []).length, (t.photos || []).filter(p => p.lat != null).length].join('|');
       let s = bkMapMemo.get(key);
-      if (s == null) { s = mapSVGString(t, asp, th); bkMapMemo.set(key, s); }
-      if (o.mapAsImg && s) return `<img class="mapimg" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}" alt="">`;
+      if (s == null) { s = bookMapImg(t, asp, th); if (bkMapMemo.size > 12) bkMapMemo.clear(); bkMapMemo.set(key, s); }
       return s;
     }
   };
@@ -1503,7 +1416,7 @@ async function exportBook(tid) {
   try {
     const book = bk && bk.tid === tid ? bk.book : bookOf(t);
     const cache = await bkCacheImages(t, book, 1700, 0.82, 'A preparar o livro');
-    const ctx = bkCtx(t, { book, cache, mapAsImg: true });
+    const ctx = bkCtx(t, { book, cache });
     const sp = bookSpreads(book), mm = BK_MM[book.fmt] || BK_MM.land, th = bookTheme(book);
     const body = sp.map(s => `<section class="spread${s.length === 1 ? ' one' : ''}">${s.map(i => bookPageHTML(book.pages[i], book, i, ctx)).join('')}</section>`).join('\n');
     const css = `@page{size:${mm[0]}mm ${mm[1]}mm;margin:0}*{box-sizing:border-box}html{background:#161614}body{margin:0;padding:3vh 0;font-family:sans-serif}.spread{display:flex;width:min(96vw,calc(2 * 92vh * ${bookFmt(book).ar}),1500px);margin:0 auto 3vh;box-shadow:0 18px 60px rgb(0 0 0/.5)}.spread.one{justify-content:center;box-shadow:none}.spread.one .pg{box-shadow:0 18px 60px rgb(0 0 0/.5)}.spread .pg{flex:0 0 50%}.spread.one .pg{flex-basis:50%}.note{max-width:760px;margin:0 auto 3vh;padding:0 16px;color:#aaa;font-size:14px;text-align:center}@media (max-width:760px){.spread{display:block;width:92vw}.spread .pg,.spread.one .pg{width:100%;margin-bottom:3vh}}@media print{html,body{background:#fff;padding:0}.note{display:none}.spread{display:block;width:auto;margin:0;box-shadow:none}.spread .pg,.spread.one .pg{width:${mm[0]}mm;height:${mm[1]}mm;margin:0;box-shadow:none;break-after:page;page-break-after:always}}`;
@@ -1561,7 +1474,7 @@ async function exportPdf(tid) {
     const book = bk && bk.tid === tid ? bk.book : bookOf(t);
     const fmt = book.fmt || 'land', [IW, IH] = PDF_PX[fmt] || PDF_PX.land, [PW, PH] = (BOOK_FORMATS[fmt] || BOOK_FORMATS.land).pt;
     const cache = await bkCacheImages(t, book, 2000, 0.86, 'PDF');
-    const ctx = bkCtx(t, { book, cache, mapAsImg: true });
+    const ctx = bkCtx(t, { book, cache });
     const fontCss = bkFontCss(book), jpegs = [];
     for (let i = 0; i < book.pages.length; i++) { setStatus(`PDF: página ${i + 1} de ${book.pages.length}…`); jpegs.push(await pageToJpeg(bookPageHTML(book.pages[i], book, i, ctx), fontCss, IW, IH)); }
     await downloads.save({ filename: slug(t.title) + '-livro.pdf', data: makePdf(jpegs, PW, PH, IW, IH) });
@@ -1583,7 +1496,7 @@ document.addEventListener('keydown', e => {
 
 /* ---------- arranque ---------- */
 async function init() {
-  { const fs = document.createElement('style'); fs.textContent = Object.values(FONT_FACES).join('\n'); document.head.append(fs); }
+  { const fs = document.createElement('style'); fs.textContent = Object.values(FONT_FACES).join('\n'); document.head.append(fs); try { document.fonts.load('400 12px "Instrument Sans"'); document.fonts.load('700 12px "Instrument Sans"'); document.fonts.load('400 12px "DM Mono"'); } catch (e) { /* ignora */ } }
   try { ui.discreet = !!localStorage.getItem('album-discreto'); } catch (e) { /* sem armazenamento */ }
   document.body.classList.toggle('discreet', ui.discreet);
   applyHash();
