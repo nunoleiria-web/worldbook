@@ -53,6 +53,7 @@ let lb = null, modal = null, bk = null, lastFocus = null;
 let statusTimer = null, uploading = false;
 const queues = new Map();
 const tripById = id => trips.find(t => t.id === id);
+const thumbOf = (t, id) => { const p = (t.photos || []).find(x => x.id === id); return blobUrl((p && p.th) || id); };
 const coverId = t => { const ph = t.photos || []; return (t.cover && ph.some(p => p.id === t.cover)) ? t.cover : (ph[0] && ph[0].id) || null; };
 const placeText = t => [t.place, t.country].filter(Boolean).join(', ');
 function enqueue(key, fn) {
@@ -225,7 +226,7 @@ function placeholder(t) {
 }
 function coverEl(t) {
   const cid = coverId(t);
-  const c = cid ? h('div', { class: 'cover' }, h('img', { src: blobUrl(cid), alt: '', loading: 'lazy', decoding: 'async' })) : placeholder(t);
+  const c = cid ? h('div', { class: 'cover' }, h('img', { src: thumbOf(t, cid), alt: '', loading: 'lazy', decoding: 'async' })) : placeholder(t);
   if (t.fav) c.append(h('span', { class: 'heart', 'aria-label': 'Favorita' }, '♥'));
   return c;
 }
@@ -248,6 +249,25 @@ function importBtn() {
   return h('button', { class: 'btn', type: 'button', onclick: () => pickImport() }, 'Importar fotos');
 }
 
+/* ---------- cópia de segurança (só na versão independente) ---------- */
+function backupBtns() {
+  const wb = window.__worldbook;
+  if (!wb || !wb.exportAll) return null;
+  return h('span', { class: 'row' },
+    h('button', { class: 'btn quiet', type: 'button', onclick: async () => {
+      try { setStatus('A preparar a cópia de segurança…'); const blob = await wb.exportAll(); await downloads.save({ filename: 'worldbook-copia-' + localYmd(new Date()) + '.json', data: blob }); setStatus('Cópia de segurança guardada.', 3500); }
+      catch (e) { setStatus('Não foi possível criar a cópia de segurança.', 4000); }
+    } }, 'Guardar cópia'),
+    h('button', { class: 'btn quiet', type: 'button', onclick: () => $('#restore-input').click() }, 'Restaurar'));
+}
+const restoreInput = $('#restore-input');
+if (restoreInput) restoreInput.addEventListener('change', async () => {
+  const f = restoreInput.files[0]; restoreInput.value = '';
+  if (!f) return;
+  try { setStatus('A restaurar…'); const r = await window.__worldbook.importAll(f); setStatus(`Restaurado: ${pl(r.docs, 'viagem', 'viagens')} e ${pl(r.blobs, 'ficheiro', 'ficheiros')}.`, 5000); }
+  catch (e) { setStatus('O ficheiro não parece uma cópia válida.', 4500); }
+});
+
 /* ---------- início ---------- */
 const TABS = [['mapa', 'Mapa'], ['viagens', 'Viagens'], ['ano', 'Ano'], ['fotos', 'Fotos']];
 function renderHome() {
@@ -255,7 +275,7 @@ function renderHome() {
   root.append(h('header', { class: 'top' },
     h('div', {}, h('h1', {}, 'Álbum de viagens'),
       (loaded && trips.length) ? h('p', { class: 'mono', style: 'margin:0' }, statsLine()) : null),
-    h('div', { class: 'row' }, importBtn(), newTripBtn(),
+    h('div', { class: 'row' }, importBtn(), newTripBtn(), backupBtns(),
       h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': ui.discreet ? 'true' : 'false', title: 'Desfoca fotos e textos para mostrares o ecrã a outras pessoas', onclick: toggleDiscreet }, 'Modo discreto'))));
   root.append(h('div', { class: 'tabs', role: 'tablist' }, TABS.map(([k, label]) =>
     h('button', { class: 'tab', type: 'button', role: 'tab', id: 'tab-' + k, 'aria-selected': ui.tab === k ? 'true' : 'false', onclick: () => setTab(k) }, label))));
@@ -339,7 +359,7 @@ function renderTripsTab() {
     root.append(h('section', { class: 'memory' },
       h('h2', {}, 'Neste dia'),
       h('p', { class: 'mono', style: 'margin:0' }, [...new Set(mem.map(m => `há ${pl(m.years, 'ano', 'anos')} · ${m.t.title}`))].slice(0, 3).join('  ·  ')),
-      h('div', { class: 'thumbs' }, mem.slice(0, 8).map((m, i) => h('button', { type: 'button', 'aria-label': 'Abrir foto de ' + m.t.title, onclick: () => openLightbox(list, i) }, h('img', { src: blobUrl(m.p.id), alt: '', loading: 'lazy' }))))));
+      h('div', { class: 'thumbs' }, mem.slice(0, 8).map((m, i) => h('button', { type: 'button', 'aria-label': 'Abrir foto de ' + m.t.title, onclick: () => openLightbox(list, i) }, h('img', { src: blobUrl(m.p.th || m.p.id), alt: '', loading: 'lazy' }))))));
   }
   const allTags = {};
   for (const t of trips) for (const g of (t.tags || [])) allTags[g] = (allTags[g] || 0) + 1;
@@ -425,7 +445,7 @@ function renderYearTab() {
 function photoFig(t, p, onOpen) {
   return h('figure', {},
     h('button', { class: 'photo', type: 'button', 'aria-label': 'Abrir foto' + (p.caption ? ': ' + p.caption : ''), onclick: onOpen },
-      h('img', { src: blobUrl(p.id), alt: p.caption || 'Foto de ' + t.title, loading: 'lazy', decoding: 'async', style: (p.w && p.h) ? `aspect-ratio:${p.w}/${p.h}` : null })),
+      h('img', { src: blobUrl(p.th || p.id), alt: p.caption || 'Foto de ' + t.title, loading: 'lazy', decoding: 'async', style: (p.w && p.h) ? `aspect-ratio:${p.w}/${p.h}` : null })),
     p.fav ? h('span', { class: 'heart', 'aria-label': 'Favorita' }, '♥') : null,
     p.caption ? h('figcaption', {}, p.caption) : null);
 }
@@ -481,7 +501,8 @@ function renderTrip() {
       canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTripForm(t) }, 'Editar viagem') : null,
       canWrite ? h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': t.fav ? 'true' : 'false', onclick: () => saveTrip(t.id, () => ({ fav: !t.fav })) }, '♥ Favorita') : null,
       h('button', { class: 'btn quiet', type: 'button', onclick: () => openBook(t.id) }, 'Ver como livro'),
-      downloads ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportBook(t.id) }, 'Exportar livro') : null)));
+      downloads ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportBook(t.id) }, 'Exportar livro') : null,
+      downloads ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportPdf(t.id) }, 'Exportar PDF') : null)));
 
   const pt = tripPoint(t);
   if (pt) {
@@ -542,7 +563,9 @@ function wireDrop(el, tripId) {
 /* ---------- render e navegação ---------- */
 function render() {
   const y = window.scrollY;
-  $('#app').replaceChildren(view.name === 'trip' ? renderTrip() : renderHome());
+  const page = view.name === 'trip' ? renderTrip() : renderHome();
+  if (ui.discreet) page.prepend(h('div', { class: 'discreet-bar', role: 'status' }, h('span', {}, 'Modo discreto ligado: fotos e textos estão desfocados.'), h('button', { class: 'btn sm', type: 'button', onclick: toggleDiscreet }, 'Desligar')));
+  $('#app').replaceChildren(page);
   window.scrollTo(0, y);
 }
 const SAFE = /^[A-Za-z0-9-]+$/;
@@ -615,6 +638,16 @@ async function prepare(file) {
   if (['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return { blob: file, w: 0, h: 0 };
   throw { code: 'unsupported_type' };
 }
+async function makeThumb(blob) {
+  try {
+    const bmp = await createImageBitmap(blob);
+    const s = Math.min(1, 640 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    bmp.close && bmp.close();
+    return await new Promise(r => c.toBlob(r, 'image/jpeg', 0.8));
+  } catch (e) { return null; }
+}
 const upMsg = {
   too_large: 'Uma foto é demasiado grande.',
   quota_or_state: 'O espaço do álbum está cheio.',
@@ -631,6 +664,8 @@ async function addEntries(tripId, entries, label) {
       const { blob, w, h: hh } = await prepare(entries[i].file);
       const r = await assets.upload(blob);
       const rec = { id: r.id, w, h: hh, caption: '' };
+      const tb = await makeThumb(blob);
+      if (tb && tb.size < blob.size) { try { rec.th = (await assets.upload(tb)).id; } catch (e) { /* sem miniatura */ } }
       if (entries[i].date) rec.date = entries[i].date;
       if (Number.isFinite(entries[i].lat) && Number.isFinite(entries[i].lng)) { rec.lat = Math.round(entries[i].lat * 1e5) / 1e5; rec.lng = Math.round(entries[i].lng * 1e5) / 1e5; }
       added.push(rec);
@@ -793,7 +828,7 @@ async function deletePhoto(t, p) {
     return { photos: rest, cover: coverId({ ...cur, photos: rest }) };
   });
   if (!ok) { if (lb) { lb.confirm = false; drawLightbox(); } return; }
-  if (assets) { try { await assets.delete(p.id); } catch (e) { /* o ficheiro fica órfão, sem impacto */ } }
+  if (assets) { for (const id of [p.id, p.th]) if (id) { try { await assets.delete(id); } catch (e) { /* o ficheiro fica órfão, sem impacto */ } } }
   if (lb) { lb.confirm = false; drawLightbox(); }
   setStatus('Foto apagada.', 2500);
 }
@@ -841,7 +876,7 @@ function openTripForm(t) {
     try {
       await enqueue(t.id, async () => {
         await db.doc('trips/' + t.id).delete();
-        if (assets) for (const p of (t.photos || [])) { try { await assets.delete(p.id); } catch (e) { /* ignora */ } }
+        if (assets) for (const p of (t.photos || [])) for (const id of [p.id, p.th]) if (id) { try { await assets.delete(id); } catch (e) { /* ignora */ } }
       });
       closeModal(); go(null); setStatus('Viagem apagada.', 2500);
     } catch (e) { delBtn.disabled = false; delBtn.textContent = 'Apagar viagem'; confirmDel = false; err.textContent = 'Não foi possível apagar. Tenta outra vez.'; err.hidden = false; }
@@ -951,7 +986,8 @@ function drawBook() {
   const el = h('div', { class: 'bk', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Livro: ' + t.title },
     h('div', { class: 'bar' }, h('span', { class: 'mono' }, `${t.title}  ·  página ${bk.i + 1} de ${bk.pages.length}`),
       h('div', { class: 'row' },
-        downloads ? h('button', { class: 'btn sm', type: 'button', onclick: () => exportBook(t.id) }, 'Exportar') : null,
+        downloads ? h('button', { class: 'btn sm', type: 'button', onclick: () => exportBook(t.id) }, 'HTML') : null,
+        downloads ? h('button', { class: 'btn sm', type: 'button', onclick: () => exportPdf(t.id) }, 'PDF') : null,
         h('button', { class: 'btn sm', type: 'button', id: 'bk-close', onclick: closeBook }, 'Fechar'))),
     stage,
     h('div', { class: 'foot' },
@@ -992,6 +1028,86 @@ async function exportBook(tid) {
   } catch (e) {
     setStatus(e && e.code === 'declined' ? null : 'Não foi possível guardar o livro.', 4000);
   } finally { exporting = false; }
+}
+
+/* ---------- PDF do livro ---------- */
+let fontCssCache = null;
+async function embeddedFonts() {
+  if (fontCssCache !== null) return fontCssCache;
+  fontCssCache = '';
+  try {
+    const link = document.querySelector('link[href*="fonts.googleapis"]');
+    if (!link) return fontCssCache;
+    const css = await (await fetch(link.href)).text();
+    const blocks = [...css.matchAll(/\/\*\s*([\w-]+)\s*\*\/\s*(@font-face\s*\{[^}]*\})/g)].filter(m => m[1] === 'latin' || m[1] === 'latin-ext').map(m => m[2]);
+    const out = [];
+    for (let b of blocks) {
+      const u = (b.match(/url\((https:[^)]+)\)/) || [])[1];
+      if (!u) continue;
+      const blob = await (await fetch(u)).blob();
+      const d = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+      out.push(b.replace(u, d));
+    }
+    fontCssCache = out.join('\n');
+  } catch (e) { fontCssCache = ''; }
+  return fontCssCache;
+}
+const PDF_W = 1587, PDF_H = 1122;
+async function pageToJpeg(html, fonts) {
+  const box = document.createElement('div'); box.innerHTML = html;
+  const xhtml = new XMLSerializer().serializeToString(box);
+  const css = BOOK_CSS + `.pg{width:${PDF_W}px;height:${PDF_H}px;margin:0}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PDF_W}" height="${PDF_H}"><foreignObject width="${PDF_W}" height="${PDF_H}"><div xmlns="http://www.w3.org/1999/xhtml"><style>${fonts}${css}</style>${xhtml.replace(/^<div[^>]*>/, '').replace(/<\/div>$/, '')}</div></foreignObject></svg>`;
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  await img.decode();
+  const c = document.createElement('canvas'); c.width = PDF_W; c.height = PDF_H;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, PDF_W, PDF_H); ctx.drawImage(img, 0, 0);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+  return new Uint8Array(await blob.arrayBuffer());
+}
+function makePdf(jpegs) {
+  const enc = new TextEncoder(), parts = [], offs = [];
+  let len = 0;
+  const push = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const PW = 842, PH = 595, n = jpegs.length;
+  push('%PDF-1.4\n');
+  offs[1] = len; push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  offs[2] = len; push(`2 0 obj\n<< /Type /Pages /Count ${n} /Kids [${jpegs.map((_, i) => `${3 + 3 * i} 0 R`).join(' ')}] >>\nendobj\n`);
+  jpegs.forEach((jp, i) => {
+    const p = 3 + 3 * i, c = p + 1, im = p + 2, content = `q ${PW} 0 0 ${PH} 0 0 cm /Im0 Do Q`;
+    offs[p] = len; push(`${p} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 ${im} 0 R >> >> /Contents ${c} 0 R >>\nendobj\n`);
+    offs[c] = len; push(`${c} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
+    offs[im] = len; push(`${im} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${PDF_W} /Height ${PDF_H} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jp.length} >>\nstream\n`); push(jp); push('\nendstream\nendobj\n');
+  });
+  const total = 3 + 3 * n, xref = len;
+  push(`xref\n0 ${total}\n0000000000 65535 f \n` + offs.slice(1, total).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+  push(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts, { type: 'application/pdf' });
+}
+let exportingPdf = false;
+async function exportPdf(tid) {
+  const t = tripById(tid);
+  if (!t || !downloads || exportingPdf || exporting) return;
+  exportingPdf = true;
+  try {
+    const pages = bookPages(t), ids = [...new Set(pages.flatMap(p => p.k === 'cover' ? [coverId(t)].filter(Boolean) : (p.photos || []).map(x => x.id)))];
+    const cache = new Map();
+    for (let i = 0; i < ids.length; i++) {
+      setStatus(`PDF: a preparar a foto ${i + 1} de ${ids.length}…`);
+      try { cache.set(ids[i], await toDataUrl(ids[i], 1400)); } catch (e) { cache.set(ids[i], ''); }
+    }
+    setStatus('PDF: a carregar tipos de letra…');
+    const fonts = await embeddedFonts();
+    const mapSvg = mapSVGString(t);
+    const ctx = { src: id => cache.get(id) || '', mapSVG: mapSvg ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mapSvg)}" alt="">` : '' };
+    const jpegs = [];
+    for (let i = 0; i < pages.length; i++) { setStatus(`PDF: página ${i + 1} de ${pages.length}…`); jpegs.push(await pageToJpeg(pageHTML(pages[i], t, ctx), fonts)); }
+    await downloads.save({ filename: slug(t.title) + '-livro.pdf', data: makePdf(jpegs) });
+    setStatus('PDF guardado.', 3000);
+  } catch (e) {
+    setStatus(e && e.code === 'declined' ? null : 'Não foi possível criar o PDF.', 4000);
+  } finally { exportingPdf = false; }
 }
 
 /* ---------- teclado ---------- */

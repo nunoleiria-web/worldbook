@@ -94,6 +94,29 @@
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     }
   };
+  const toData = b => new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); });
+  window.__worldbook.exportAll = async () => {
+    const st = await init();
+    const blobs = await new Promise((res, rej) => { const out = []; const c = st.db.transaction(BLOBS, 'readonly').objectStore(BLOBS).openCursor(); c.onsuccess = () => { const cur = c.result; if (cur) { out.push([cur.key, cur.value]); cur.continue(); } else res(out); }; c.onerror = () => rej(c.error); });
+    const parts = ['{"app":"worldbook","version":1,"docs":', JSON.stringify([...st.docs]), ',"blobs":['];
+    for (let i = 0; i < blobs.length; i++) parts.push((i ? ',' : '') + JSON.stringify([blobs[i][0], await toData(blobs[i][1])]));
+    parts.push(']}');
+    return new Blob(parts, { type: 'application/json' });
+  };
+  window.__worldbook.importAll = async file => {
+    const st = await init();
+    const data = JSON.parse(await file.text());
+    if (!data || data.app !== 'worldbook' || !Array.isArray(data.docs) || !Array.isArray(data.blobs)) throw new Error('formato');
+    for (const [id, du] of data.blobs) {
+      const blob = await (await fetch(du)).blob();
+      await tx(st.db, BLOBS, 'readwrite', s => s.put(blob, id));
+      const old = urls.get(id); if (old) URL.revokeObjectURL(old);
+      urls.set(id, URL.createObjectURL(blob));
+    }
+    for (const [k, v] of data.docs) { await tx(st.db, DOCS, 'readwrite', s => s.put(v, k)); st.docs.set(k, v); }
+    notify(st);
+    return { docs: data.docs.length, blobs: data.blobs.length };
+  };
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   const user = { canEdit: () => true };
   window.claude = { use: async name => {
