@@ -9,9 +9,12 @@
 
 ## Montar
 ```
-node src/build.js dist/album-de-viagens.html
+node src/build.js docs/index.html --standalone     # versão pública (GitHub Pages), guarda tudo no navegador
+node src/build.js dist/album-de-viagens.html       # versão para artefacto Claude
 ```
 
+## Versão pública
+`docs/index.html` usa `src/shim.js`: viagens e fotos ficam guardadas no próprio navegador (IndexedDB), sem servidor e sem conta. Cada pessoa vê apenas o seu álbum. Limitações: os dados não passam de um dispositivo para outro e apagam-se se limpares os dados do site.
+
 ## Notas
-- Foi feita como artefacto Claude: guarda dados e fotos através de `window.claude` (`db`, `assets`, `user`, `downloads`). Fora desse ambiente a página abre, mas não guarda nada; para uso independente é preciso trocar essa camada de armazenamento.
 - O mapa é simplificado e desenhado à mão; o país sugerido pelo GPS é aproximado.

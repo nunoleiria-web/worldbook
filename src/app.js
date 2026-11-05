@@ -2,7 +2,7 @@
 const $ = (s, r = document) => r.querySelector(s);
 const SVGNS = 'http://www.w3.org/2000/svg';
 const pl = (n, s, p) => n + ' ' + (n === 1 ? s : p);
-const blobUrl = id => '/_blob/' + encodeURIComponent(id);
+const blobUrl = id => (window.__worldbook && window.__worldbook.blobUrl(id)) || ('/_blob/' + encodeURIComponent(id));
 const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 function h(tag, props, ...kids) {
