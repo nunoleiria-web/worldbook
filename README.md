@@ -1,18 +1,18 @@
 # Worldbook
 
-Álbum de viagens: mapa-múndi com pinos e percurso, diário dia a dia, importação de fotos (data e GPS lidos do EXIF), calendário anual, vista de fotos, "Neste dia", modo discreto e livro de viagem exportável em HTML.
+Álbum de viagens: mapa-múndi com pinos e percurso, diário dia a dia, importação de fotos (data e GPS lidos do EXIF), calendário anual, vista de fotos, "Neste dia", modo discreto e livro de fotografias paginado automaticamente (4 temas, editor, PDF).
 
 ## Funcionalidades
 - Mapa-múndi com pinos, percurso entre viagens e países visitados
 - Diário dia a dia, calendário do ano, vista de fotos, pesquisa e "Neste dia"
 - Importar fotos: agrupa por data, lê data/hora e GPS (EXIF) e propõe viagens
 - Importar percurso GPS (JSON da Linha cronológica do Google Maps, GPX, KML, GeoJSON) e associar às fotos pela hora
-- Livro de viagem em HTML e PDF
+- Livro de fotografias: paginação automática com colagens sem cortes (por proporção de cada foto), capa, mapa com o percurso, abertura de cada dia, páginas inteiras para destaques e panorâmicas, fecho com estatísticas; 4 temas (Revista, Clássico, Galeria, Noite), 3 formatos, editor de páginas (disposição, mover, texto, enquadramento, legendas) e exportação para PDF (~170 ppp, tipos de letra embebidos) e HTML
 - Cópia de segurança e restauro (versão pública)
 - Modo discreto (desfoca fotos e textos)
 
 ## Estrutura
-- `src/` código-fonte (`world.js` mapa e países, `lib.js` funções puras, `app.js` interface, `style.css`, `template.html`, `build.js`)
+- `src/` código-fonte (`world.js` mapa e países, `lib.js` funções puras, `book.js` motor do livro, `fonts/` tipos de letra (OFL) embebidos, `app.js` interface, `style.css`, `template.html`, `build.js`)
 - `dist/album-de-viagens.html` página já montada
 - `tests/` testes (`src/test-lib.js` para as funções puras; `tests/test-page.py` com Playwright e um `window.claude` simulado)
 

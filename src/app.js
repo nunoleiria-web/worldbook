@@ -83,12 +83,13 @@ const LAND_D = LAND.map(polyPath).join('');
 const SEA_D = SEAS.map(polyPath).join('');
 const BOOK_PAL = { sea: '#E1E9E7', land: '#FFFFFF', coast: '#A5B5B1', grat: '#CFDAD7', pin: '#C8341B', dot: '#1F3F9E', route: '#1F3F9E' };
 
-function fitView(points, minW) {
+function fitView(points, minW, aspect) {
   if (!points.length) return { x: 0, y: 0, w: MAP_W };
+  const ar = aspect || MAP_W / MAP_H;
   const xs = points.map(p => project(p.lng, p.lat)[0]), ys = points.map(p => project(p.lng, p.lat)[1]);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-  const w = Math.min(MAP_W, Math.max(minW || 220, (x1 - x0) * 1.5, (y1 - y0) * 1.5 * MAP_W / MAP_H));
-  const hh = w * MAP_H / MAP_W;
+  const w = Math.min(MAP_W, Math.max(minW || 220, (x1 - x0) * 1.5, (y1 - y0) * 1.5 * ar));
+  const hh = w / ar;
   return { x: Math.max(0, Math.min(MAP_W - w, (x0 + x1) / 2 - w / 2)), y: Math.max(0, Math.min(MAP_H - hh, (y0 + y1) / 2 - hh / 2)), w };
 }
 
@@ -97,7 +98,7 @@ function createMap(o) {
   const col = (k, v) => pal ? pal[k] : `var(--${v})`;
   const svg = svgEl('svg', { viewBox: `0 0 ${MAP_W} ${MAP_H}`, role: 'img', 'aria-label': o.label || 'Mapa-múndi', xmlns: SVGNS });
   svg.append(
-    svgEl('rect', { x: 0, y: 0, width: MAP_W, height: MAP_H, fill: col('sea', 'sea') }),
+    svgEl('rect', o.aspect ? { x: -4000, y: -4000, width: 9000, height: 9000, fill: col('sea', 'sea') } : { x: 0, y: 0, width: MAP_W, height: MAP_H, fill: col('sea', 'sea') }),
     svgEl('path', { d: GRAT_D, fill: 'none', stroke: col('grat', 'grat'), 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }),
     svgEl('path', { d: LAND_D, fill: col('land', 'land'), stroke: col('coast', 'coast'), 'stroke-width': 1, 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }),
     svgEl('path', { d: SEA_D, fill: col('sea', 'sea'), stroke: col('coast', 'coast'), 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }));
@@ -138,7 +139,7 @@ function createMap(o) {
 
   let { x: vx, y: vy, w: vw } = o.view || { x: 0, y: 0, w: MAP_W };
   const box = h('div', { class: 'mapbox' + (o.onPick ? ' pick' : '') });
-  const vh = () => vw * MAP_H / MAP_W;
+  const vh = () => vw / (o.aspect || MAP_W / MAP_H);
   const clampView = () => { vw = Math.max(20, Math.min(MAP_W, vw)); vx = Math.max(0, Math.min(MAP_W - vw, vx)); vy = Math.max(0, Math.min(MAP_H - vh(), vy)); };
   const widthPx = () => svg.getBoundingClientRect().width || 700;
   function apply(silent) {
@@ -201,11 +202,12 @@ function createMap(o) {
   return { el: box, setPick: drawPick, svg };
 }
 
-function mapSVGString(t) {
+function mapSVGString(t, aspect, th) {
   const pt = tripPoint(t);
   if (!pt) return '';
   const dots = (t.photos || []).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-  const m = createMap({ static: true, palette: BOOK_PAL, pins: [{ id: t.id, lat: pt.lat, lng: pt.lng }], dots, track: t.track, view: fitView([pt].concat(dots, trackPoints(t)), 300) });
+  const pal = th ? { sea: th.sea, land: th.land, coast: th.coast, grat: th.grat, pin: th.accent, dot: th.ink, route: th.accent } : BOOK_PAL;
+  const m = createMap({ static: true, palette: pal, aspect, pins: [{ id: t.id, lat: pt.lat, lng: pt.lng }], dots, track: t.track, view: fitView([pt].concat(dots, trackPoints(t)), 300, aspect) });
   return m.svg.outerHTML;
 }
 
@@ -495,20 +497,23 @@ function renderTrip() {
   const dc = tripDayCount(t);
   const when = [dateText(t), dc > 1 ? pl(dc, 'dia', 'dias') : '', photos.length ? pl(photos.length, 'foto', 'fotos') : ''].filter(Boolean).join('  ·  ');
   const canUpload = canWrite && !!assets;
-  root.append(h('header', { class: 'trip-head' },
-    when ? h('p', { class: 'mono', style: 'margin:0' }, when) : null,
-    h('h1', { style: 'margin:0' }, t.title),
-    placeText(t) ? h('p', { class: 'where' }, placeText(t)) : null,
-    (t.tags || []).length ? h('div', { class: 'tagline' }, t.tags.map(x => h('span', {}, x))) : null,
+  const cid = coverId(t), cph = photos.find(p => p.id === cid);
+  const hero = h('div', { class: 'hero' },
+    cph ? h('img', { src: blobUrl(cph.id), alt: '' }) : null,
+    h('div', { class: 'ht' },
+      when ? h('p', { class: 'mono' }, when) : null,
+      h('h1', {}, t.title),
+      placeText(t) ? h('p', { class: 'where' }, placeText(t)) : null));
+  root.append(h('header', { class: 'trip-head' }, hero,
+    (t.tags || []).length ? h('div', { class: 'tagline', style: 'margin:0 0 12px' }, t.tags.map(x => h('span', {}, x))) : null,
     t.note ? h('p', { class: 'note' }, t.note) : null,
-    h('div', { class: 'row' },
+    h('div', { class: 'acts' },
+      photos.length ? h('button', { class: 'btn book', type: 'button', onclick: () => openBook(t.id) }, 'Abrir o livro') : null,
       canUpload ? h('button', { class: 'btn primary', type: 'button', onclick: () => pickFiles(t.id) }, 'Adicionar fotos') : null,
       canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTripForm(t) }, 'Editar viagem') : null,
       canWrite ? h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': t.fav ? 'true' : 'false', onclick: () => saveTrip(t.id, () => ({ fav: !t.fav })) }, '♥ Favorita') : null,
       canWrite ? h('button', { class: 'btn quiet', type: 'button', onclick: () => openTrackImport(t.id) }, t.track && t.track.length >= 6 ? 'Atualizar percurso' : 'Importar percurso') : null,
-      h('button', { class: 'btn quiet', type: 'button', onclick: () => openBook(t.id) }, 'Ver como livro'),
-      downloads ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportBook(t.id) }, 'Exportar livro') : null,
-      downloads ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportPdf(t.id) }, 'Exportar PDF') : null)));
+      downloads && photos.length ? h('button', { class: 'btn quiet', type: 'button', onclick: () => exportPdf(t.id) }, 'PDF') : null)));
 
   const pt = tripPoint(t);
   if (pt) {
@@ -1141,75 +1146,335 @@ function openTripForm(t) {
   f.title.focus();
 }
 
-/* ---------- livro ---------- */
-function bookPages(t) {
-  const pages = [{ k: 'cover' }];
-  if (tripPoint(t)) pages.push({ k: 'map' });
-  const photos = t.photos || [], days = tripDays(t), byDay = new Map(), loose = [];
-  for (const p of photos) { if (p.date && days.includes(p.date)) { if (!byDay.has(p.date)) byDay.set(p.date, []); byDay.get(p.date).push(p); } else loose.push(p); }
-  for (const d of days) {
-    const ps = byDay.get(d) || [], text = ((t.days || {})[d] || '').trim();
-    if (!ps.length && !text) continue;
-    const n = t.start && parseYmd(t.start) ? diffDays(t.start, d) + 1 : null;
-    if (text.length > 650 || !ps.length) { pages.push({ k: 'day', date: d, n, text, photos: [], solo: true }); chunk(ps, 4).forEach(c => pages.push({ k: 'day', date: d, n, text: '', photos: c })); }
-    else chunk(ps, 4).forEach((c, i) => pages.push({ k: 'day', date: d, n, text: i === 0 ? text : '', photos: c }));
-  }
-  chunk(loose, 4).forEach(c => pages.push({ k: 'day', date: '', n: null, text: '', photos: c, more: true }));
-  pages.push({ k: 'end' });
-  return pages;
-}
-function layoutOf(ps) {
-  if (ps.length === 1) return 'l1';
-  if (ps.length === 2) { const portrait = ps.filter(p => p.h > p.w).length; return portrait === 2 ? 'l2h' : portrait === 0 ? 'l2v' : 'l2h'; }
-  return ps.length === 3 ? 'l3' : 'l4';
-}
-function pageHTML(pg, t, ctx) {
-  const dc = tripDayCount(t), n = (t.photos || []).length;
-  if (pg.k === 'cover') {
-    const cid = coverId(t);
-    const bg = cid ? `<img class="bg" src="${esc(ctx.src(cid))}" alt="">` : `<div style="position:absolute;inset:0;background:linear-gradient(145deg,hsl(${hueOf(t.title)} 38% 34%),hsl(${(hueOf(t.title) + 38) % 360} 42% 26%))"></div>`;
-    return `<div class="pg cover">${bg}<div class="shade"></div><div class="t"><span class="mn">${esc([dateText(t), dc > 1 ? pl(dc, 'dia', 'dias') : ''].filter(Boolean).join('  ·  '))}</span><h2>${esc(t.title)}</h2>${placeText(t) ? `<p class="sub">${esc(placeText(t))}</p>` : ''}</div></div>`;
-  }
-  if (pg.k === 'map') return `<div class="pg mp"><div><h2>Onde</h2><span class="mn">${esc(placeText(t) || t.title)}</span>${(t.tags || []).length ? `<p class="mn" style="margin-top:1.4cqw">${esc(t.tags.join(' · '))}</p>` : ''}${t.note ? `<p style="margin-top:1.6cqw;white-space:pre-wrap;overflow:hidden;max-height:34cqw">${esc(t.note)}</p>` : ''}</div><div class="mapw">${ctx.mapSVG}</div></div>`;
-  if (pg.k === 'end') return `<div class="pg end"><div class="inner"><h2>${esc(t.title)}</h2><div class="nums"><div><b>${dc || tripDays(t).length || 1}</b><span>${dc === 1 ? 'dia' : 'dias'}</span></div><div><b>${n}</b><span>${n === 1 ? 'foto' : 'fotos'}</span></div></div><span class="mn" style="color:#9bada8">${esc(dateText(t))}</span></div></div>`;
-  const label = pg.date ? `${pg.n && pg.n >= 1 ? `<b>Dia ${pg.n}</b>` : ''}<span class="mn">${esc(dfmtLong.format(parseYmd(pg.date)))}</span>` : `<b>${pg.more ? 'Mais fotos' : ''}</b>`;
-  const hasTxt = !!pg.text, solo = pg.solo;
-  const ph = pg.photos.length ? `<div class="ph ${layoutOf(pg.photos)}">${pg.photos.map(p => `<img src="${esc(ctx.src(p.id))}" alt="${esc(p.caption || '')}">`).join('')}</div>` : '';
-  return `<div class="pg day${hasTxt && !solo ? ' has-txt' : ''}${solo ? ' only-txt' : ''}"><div class="hd">${label}</div><div class="bd">${hasTxt ? `<div class="tx">${esc(pg.text)}</div>` : ''}${ph}</div></div>`;
+/* ---------- livro: visualizador, editor e exportação ---------- */
+const bookOf = t => (t.book && t.book.v === 1 && Array.isArray(t.book.pages) && t.book.pages.length >= 2) ? JSON.parse(JSON.stringify(t.book)) : bookAuto(t);
+const bkMapMemo = new Map();
+function bkCtx(t, o) {
+  o = o || {};
+  const pm = new Map((t.photos || []).map(p => [p.id, p]));
+  const th = bookTheme(o.book);
+  return {
+    trip: t, mini: !!o.mini,
+    photo: id => pm.get(id),
+    src: (id, r) => {
+      if (o.cache) return o.cache.get(id) || '';
+      const p = pm.get(id) || {};
+      return blobUrl((o.mini || (r && Math.max(r.w, r.h) < 36)) && p.th ? p.th : id);
+    },
+    mapSVG: asp => {
+      if (o.mini) return '';
+      const key = [t.id, o.book && o.book.theme, asp.toFixed(2), (t.track || []).length, (t.photos || []).length].join('|');
+      let s = bkMapMemo.get(key);
+      if (s == null) { s = mapSVGString(t, asp, th); bkMapMemo.set(key, s); }
+      if (o.mapAsImg && s) return `<img class="mapimg" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}" alt="">`;
+      return s;
+    }
+  };
 }
 function openBook(tid) {
   const t = tripById(tid); if (!t) return;
   lastFocus = document.activeElement;
-  bk = { tid, i: 0, pages: bookPages(t), map: mapSVGString(t), el: null };
+  bk = { tid, book: bookOf(t), saved: !!t.book, i: 0, edit: false, sel: null, selPhoto: null, single: window.innerWidth < 760, el: null, busy: false };
   lockScroll(); drawBook();
 }
 function closeBook() {
   if (!bk) return;
+  bk.ro && bk.ro.disconnect();
   bk.el && bk.el.remove(); bk = null; unlockScroll();
   lastFocus && lastFocus.focus && lastFocus.focus();
 }
-function bkStep(d) { if (!bk) return; bk.i = Math.max(0, Math.min(bk.pages.length - 1, bk.i + d)); drawBook(); }
-function drawBook() {
+const bkSpreadList = () => bk.single ? bk.book.pages.map((_, i) => [i]) : bookSpreads(bk.book);
+function bkGoto(i, noAnim) {
+  const sp = bkSpreadList();
+  bk.i = Math.max(0, Math.min(sp.length - 1, i)); bk.sel = null; bk.selPhoto = null;
+  drawBook(noAnim ? 0 : 1);
+}
+function bkStep(d) { if (bk) bkGoto(bk.i + d); }
+function bkCommit(redraw) {
+  if (!bk) return;
+  bk.saved = true;
+  const b = JSON.parse(JSON.stringify(bk.book)); delete b.auto;
+  if (canWrite) saveTrip(bk.tid, () => ({ book: b }));
+  if (redraw !== false) drawBook(0);
+}
+function bkPageIdx() {
+  const sp = bkSpreadList()[bk.i] || [0];
+  return bk.sel != null && sp.includes(bk.sel) ? bk.sel : sp[0];
+}
+function bkSetTheme(k) { bk.book.theme = k; bk.book.auto = false; bkCommit(); }
+function bkSetFmt(k) { bk.book.fmt = k; bkCommit(); }
+function bkMovePage(i, d) {
+  const ps = bk.book.pages, j = i + d;
+  if (i <= 0 || i >= ps.length - 1 || j <= 0 || j >= ps.length - 1) return;
+  [ps[i], ps[j]] = [ps[j], ps[i]];
+  bk.sel = j; bkCommit();
+}
+function bkDelPage(i) {
+  const ps = bk.book.pages;
+  if (i <= 0 || i >= ps.length - 1) return;
+  ps.splice(i, 1); bk.sel = null;
+  bk.i = Math.min(bk.i, bkSpreadList().length - 1); bkCommit();
+}
+function bkAddPage(i, type, ids) {
+  const pg = type === 'text' ? { t: 'text', text: '' } : { t: 'collage', ids: ids || [] };
+  bk.book.pages.splice(i + 1, 0, pg); bk.sel = i + 1;
+  const sp = bkSpreadList(); bk.i = Math.max(0, sp.findIndex(s => s.includes(i + 1))); bkCommit();
+}
+function bkAddPhoto(pi, id) {
+  const pg = bk.book.pages[pi];
+  if (!pg) return;
+  if (pg.t === 'collage' || pg.t === 'full') { pg.ids = (pg.ids || []).concat(id); pg.t = pg.ids.length > 1 ? 'collage' : pg.t; pg.alt = 0; delete pg.mode; }
+  else if (pg.t === 'day' && !(pg.ids || []).length) pg.ids = [id];
+  else { bk.toast = 'Escolhe uma página de fotos para juntar a foto.'; drawBook(0); return; }
+  bkCommit();
+}
+function bkRemovePhoto(pi, id) {
+  const pg = bk.book.pages[pi];
+  if (!pg || !pg.ids) return;
+  pg.ids = pg.ids.filter(x => x !== id);
+  if (pg.t === 'collage' && pg.ids.length === 1) pg.t = 'full';
+  if (!pg.ids.length && pg.t === 'full') pg.t = 'collage';
+  bk.selPhoto = null; pg.alt = 0; bkCommit();
+}
+function bkMovePhoto(pi, id, d) {
+  const ps = bk.book.pages, j = pi + d;
+  if (!ps[j] || j <= 0 || j >= ps.length - 1) return;
+  const dst = ps[j];
+  if (!(dst.t === 'collage' || dst.t === 'full')) { bk.toast = 'A página vizinha não é de fotos.'; drawBook(0); return; }
+  bkRemovePhoto(pi, id);
+  bk.sel = j; dst.ids = (dst.ids || []).concat(id); dst.t = dst.ids.length > 1 ? 'collage' : 'full'; dst.alt = 0;
+  bkCommit();
+}
+function bkSplitPage(pi) {
+  const pg = bk.book.pages[pi];
+  if (pg.t === 'collage' && (pg.ids || []).length >= 3) {
+    const k = Math.ceil(pg.ids.length / 2), rest = pg.ids.splice(k);
+    pg.alt = 0; bk.book.pages.splice(pi + 1, 0, { t: rest.length > 1 ? 'collage' : 'full', ids: rest });
+    bk.sel = pi; bkCommit();
+  } else if (pg.t === 'day' || pg.t === 'text') {
+    const el = bk.el.querySelector(`.pg[data-page="${pi}"] .tx.body`);
+    const text = pg.text || '';
+    let cut = text.length > 200 ? Math.floor(text.length * (el && el.scrollHeight > el.clientHeight ? el.clientHeight / el.scrollHeight : 0.6) * 0.92) : text.length;
+    const parts = bkSplitText(text, Math.max(120, cut), 1250);
+    if (parts.length < 2) return;
+    pg.text = parts[0];
+    bk.book.pages.splice(pi + 1, 0, ...parts.slice(1).map(x => ({ t: 'text', date: pg.date, text: x, cont: true })));
+    bkCommit();
+  }
+}
+function bkFocusSave(pi, id, f) {
+  const pg = bk.book.pages[pi]; if (!pg) return;
+  pg.focus = pg.focus || {}; pg.focus[id] = f;
+  bkCommit(false);
+}
+function bkAppendNew() {
+  const t = tripById(bk.tid); if (!t) return;
+  const un = bookUnused(t, bk.book);
+  if (!un.length) return;
+  const pcs = bkPaginate(un).map(pc => ({ t: pc.full ? 'full' : 'collage', ids: pc.ids }));
+  const ps = bk.book.pages;
+  let at = ps.findIndex(p => p.t === 'end');
+  if (at < 0) at = ps.length - 1;
+  if (ps[at - 1] && ps[at - 1].t === 'rest') at--;
+  ps.splice(at, 0, ...pcs);
+  bkCommit();
+}
+function bkPhotoPatch(id, patch) {
+  saveTrip(bk.tid, t => ({ photos: (t.photos || []).map(p => p.id === id ? Object.assign({}, p, patch) : p) }));
+}
+
+function bkFit() {
+  if (!bk || !bk.el) return;
+  const wrap = bk.el.querySelector('.stagewrap'), sp = bk.el.querySelector('.spread');
+  if (!wrap || !sp) return;
+  const cs = getComputedStyle(wrap);
+  const aw = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const ar = bookFmt(bk.book).ar, n = sp.children.length;
+  const pw = Math.max(80, Math.min(aw / n, ah * ar));
+  for (const p of sp.children) { p.style.width = pw.toFixed(1) + 'px'; p.style.height = (pw / ar).toFixed(1) + 'px'; }
+}
+function bkOverflowCheck() {
+  if (!bk || !bk.edit) return;
+  let over = false;
+  for (const el of bk.el.querySelectorAll('.tx.body')) { const bad = el.scrollHeight > el.clientHeight + 2; el.style.outline = bad ? '2px solid #e5484d' : ''; if (bad) over = true; }
+  const note = bk.el.querySelector('.overnote'); if (note) note.hidden = !over;
+}
+
+function drawBook(anim) {
   if (!bk) return;
   const t = tripById(bk.tid);
   if (!t) { closeBook(); return; }
-  const stage = h('div', { class: 'stagebox' });
-  stage.innerHTML = pageHTML(bk.pages[bk.i], t, { src: blobUrl, mapSVG: bk.map });
-  const el = h('div', { class: 'bk', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Livro: ' + t.title },
-    h('div', { class: 'bar' }, h('span', { class: 'mono' }, `${t.title}  ·  página ${bk.i + 1} de ${bk.pages.length}`),
-      h('div', { class: 'row' },
-        downloads ? h('button', { class: 'btn sm', type: 'button', onclick: () => exportBook(t.id) }, 'HTML') : null,
-        downloads ? h('button', { class: 'btn sm', type: 'button', onclick: () => exportPdf(t.id) }, 'PDF') : null,
-        h('button', { class: 'btn sm', type: 'button', id: 'bk-close', onclick: closeBook }, 'Fechar'))),
-    stage,
-    h('div', { class: 'foot' },
-      h('button', { class: 'btn', type: 'button', disabled: bk.i === 0, onclick: () => bkStep(-1) }, '← Anterior'),
-      h('button', { class: 'btn', type: 'button', disabled: bk.i === bk.pages.length - 1, onclick: () => bkStep(1) }, 'Seguinte →')));
+  const book = bk.book, th = bookTheme(book);
+  const spreads = bkSpreadList();
+  bk.i = Math.max(0, Math.min(spreads.length - 1, bk.i));
+  const cur = spreads[bk.i], ctx = bkCtx(t, { book });
+  const pi = bkPageIdx();
+  const canEdit = !!canWrite;
+  const spreadEl = h('div', { class: 'spread' });
+  spreadEl.innerHTML = cur.map(i => bookPageHTML(book.pages[i], book, i, ctx)).join('');
+  const seg = (items, val, fn, label) => h('div', { class: 'seg', role: 'group', 'aria-label': label }, items.map(([k, n]) => h('button', { type: 'button', 'aria-pressed': String(k === val), onclick: () => fn(k) }, n)));
+  const bar = h('div', { class: 'bar' },
+    h('h3', {}, t.title),
+    seg(BOOK_THEME_KEYS.map(k => [k, BOOK_THEMES[k].name]), book.theme || 'revista', bkSetTheme, 'Tema'),
+    seg(Object.keys(BOOK_FORMATS).map(k => [k, BOOK_FORMATS[k].name]), book.fmt || 'land', bkSetFmt, 'Formato'),
+    canEdit ? h('button', { class: 'btn sm', type: 'button', 'aria-pressed': String(bk.edit), onclick: () => { bk.edit = !bk.edit; bk.sel = null; bk.selPhoto = null; drawBook(0); } }, bk.edit ? 'Concluir edição' : 'Editar') : null,
+    downloads ? h('button', { class: 'btn sm', type: 'button', onclick: () => exportBook(t.id) }, 'HTML') : null,
+    downloads ? h('button', { class: 'btn sm pri', type: 'button', onclick: () => exportPdf(t.id) }, 'PDF') : null,
+    h('button', { class: 'btn sm', type: 'button', id: 'bk-close', onclick: closeBook }, 'Fechar'));
+  const wrap = h('div', { class: 'stagewrap' },
+    h('button', { class: 'nv l', type: 'button', 'aria-label': 'Página anterior', disabled: bk.i === 0, onclick: () => bkStep(-1) }, '‹'),
+    spreadEl,
+    h('button', { class: 'nv r', type: 'button', 'aria-label': 'Página seguinte', disabled: bk.i === spreads.length - 1, onclick: () => bkStep(1) }, '›'));
+  if (bk.toast) { const tt = bk.toast; bk.toast = null; wrap.append(h('div', { class: 'toast' }, tt)); setTimeout(() => { const x = wrap.querySelector('.toast'); x && x.remove(); }, 2800); }
+  const strip = h('div', { class: 'strip', role: 'list', 'aria-label': 'Páginas' });
+  const sctx = bkCtx(t, { book, mini: true });
+  spreads.forEach((sp, k) => {
+    const b = h('button', { type: 'button', role: 'listitem', 'aria-label': 'Ir para ' + (sp.length > 1 ? `páginas ${sp[0]}–${sp[1]}` : sp[0] === 0 ? 'a capa' : `a página ${sp[0]}`), 'aria-current': String(k === bk.i), onclick: () => bkGoto(k) });
+    b.innerHTML = sp.map(i => bookPageHTML(book.pages[i], book, i, sctx)).join('');
+    strip.append(b);
+  });
+  const tools = bk.edit ? bkTools(t, pi) : null;
+  const el = h('div', { class: 'bk' + (bk.edit ? ' editing' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Livro: ' + t.title }, bar, wrap, strip, tools);
+  if (!tools) el.style.gridTemplateRows = 'auto minmax(0, 1fr) auto';
+  const prevStrip = bk.el && bk.el.querySelector('.strip');
+  const sl = prevStrip ? prevStrip.scrollLeft : 0;
+  bk.ro && bk.ro.disconnect();
   bk.el && bk.el.remove();
   bk.el = el; document.body.append(el);
-  $('#bk-close', el).focus();
+  strip.scrollLeft = sl;
+  const cb = strip.querySelector('[aria-current="true"]'); cb && cb.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  bkFit();
+  if (window.ResizeObserver) { bk.ro = new ResizeObserver(() => { const s = window.innerWidth < 760; if (s !== bk.single) { const first = (bkSpreadList()[bk.i] || [0])[0]; bk.single = s; bk.i = bkSpreadList().findIndex(x => x.includes(first)); drawBook(0); } else bkFit(); bkOverflowCheck(); }); bk.ro.observe(wrap); }
+  if (anim) { spreadEl.classList.add('out'); requestAnimationFrame(() => requestAnimationFrame(() => spreadEl.classList.remove('out'))); }
+  bkWire(spreadEl, t);
+  bkOverflowCheck();
+  if (!bk.edit) $('#bk-close', el).focus();
 }
-async function toDataUrl(id, max) {
+function bkWire(spreadEl, t) {
+  const book = bk.book;
+  spreadEl.querySelectorAll('.pg').forEach(pgEl => {
+    const pi = +pgEl.dataset.page;
+    if (bk.edit) {
+      if (pi === bkPageIdx()) pgEl.classList.add('act');
+      pgEl.addEventListener('pointerdown', e => {
+        if (e.target.closest('[contenteditable="true"]')) return;
+        const ph = e.target.closest('.ph');
+        if (bk.sel !== pi || (ph && bk.selPhoto !== ph.dataset.id)) { bk.sel = pi; bk.selPhoto = ph ? ph.dataset.id : null; }
+        if (ph && !(bk.dragOK === false)) bkDragFocus(e, ph, pi);
+        else if (bk.sel !== pi || bk.selPhoto) { /* seleção simples */ }
+        if (!ph) { bk.selPhoto = null; }
+        if (!ph) bkRefreshTools();
+      });
+      pgEl.querySelectorAll('.ph').forEach(p => { if (p.dataset.id === bk.selPhoto && pi === bk.sel) p.classList.add('sel'); });
+      pgEl.querySelectorAll('[data-field]').forEach(f => {
+        f.setAttribute('contenteditable', 'true'); f.spellcheck = true;
+        f.addEventListener('pointerdown', e => { bk.sel = pi; e.stopPropagation(); });
+        f.addEventListener('blur', () => {
+          const field = f.dataset.field, v = f.innerText.replace(/\n{3,}/g, '\n\n').replace(/ /g, ' ').trim();
+          const pg = book.pages[pi];
+          if (!pg) return;
+          const old = pg[field] != null ? pg[field] : (field === 'title' ? t.title : '');
+          if (v === old) return;
+          pg[field] = v;
+          bkCommit(false);
+          setTimeout(() => { if (bk && !(document.activeElement && document.activeElement.isContentEditable)) drawBook(0); }, 60);
+        });
+        f.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && f.dataset.field === 'title') { e.preventDefault(); f.blur(); } });
+      });
+    }
+  });
+}
+function bkRefreshTools() {
+  if (!bk || !bk.edit) return;
+  const t = tripById(bk.tid); if (!t) return;
+  const old = bk.el.querySelector('.tools'); if (!old) return;
+  const nw = bkTools(t, bkPageIdx());
+  old.replaceWith(nw);
+  bk.el.querySelectorAll('.spread .pg').forEach(p => { p.classList.toggle('act', +p.dataset.page === bkPageIdx()); p.querySelectorAll('.ph').forEach(x => x.classList.toggle('sel', +p.dataset.page === bk.sel && x.dataset.id === bk.selPhoto)); });
+}
+function bkDragFocus(e, ph, pi) {
+  const id = ph.dataset.id, pg = bk.book.pages[pi], img = ph.querySelector('img');
+  if (!pg || !img) { bkRefreshTools(); return; }
+  const r = ph.getBoundingClientRect();
+  const f0 = (pg.focus && pg.focus[id]) || [50, 50];
+  const sx = e.clientX, sy = e.clientY;
+  let moved = false, f = f0.slice();
+  const mv = ev => {
+    const dx = ev.clientX - sx, dy = ev.clientY - sy;
+    if (!moved && Math.hypot(dx, dy) < 4) return;
+    moved = true;
+    f = [Math.max(0, Math.min(100, f0[0] - dx / r.width * 100 * 1.6)), Math.max(0, Math.min(100, f0[1] - dy / r.height * 100 * 1.6))];
+    img.style.objectPosition = f[0].toFixed(1) + '% ' + f[1].toFixed(1) + '%';
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+    if (moved) bkFocusSave(pi, id, f.map(v => Math.round(v * 10) / 10));
+    bkRefreshTools();
+  };
+  window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  e.preventDefault();
+}
+function bkTools(t, pi) {
+  const book = bk.book, pg = book.pages[pi] || {};
+  const btn = (label, fn, o) => h('button', Object.assign({ class: 'btn sm', type: 'button', onclick: fn }, o || {}), label);
+  const row = [];
+  const last = book.pages.length - 1;
+  const isFixed = pi === 0 || pi === last;
+  row.push(h('small', {}, pi === 0 ? 'Capa' : pi === last ? 'Contracapa' : `Página ${pi}`));
+  if (pi === 0) {
+    const photos = bkPhotoSortSafe(t);
+    row.push(h('small', {}, 'Clica numa foto abaixo para a usar como capa:'));
+    row.push(h('div', { class: 'tray' }, photos.map(p => h('button', { type: 'button', title: 'Usar como capa', 'aria-label': 'Usar como capa', style: `background-image:url("${blobUrl(p.th || p.id)}")`, onclick: () => { pg.id = p.id; bkCommit(); } }))));
+  }
+  if (!isFixed) {
+    if (pg.t === 'collage' && (pg.ids || []).length >= 2) row.push(btn('Outra disposição', () => { pg.alt = (pg.alt || 0) + 1; bkCommit(); }));
+    if (pg.t === 'full' && (pg.ids || []).length === 1) row.push(btn(pg.mode === 'fit' ? 'Sangrar a foto' : 'Foto com margens', () => { pg.mode = pg.mode === 'fit' ? 'bleed' : 'fit'; bkCommit(); }));
+    if ((pg.t === 'collage' && (pg.ids || []).length >= 3) || pg.t === 'day' || pg.t === 'text') row.push(btn(pg.t === 'collage' ? 'Dividir página' : 'Continuar noutra página', () => bkSplitPage(pi)));
+    row.push(btn('← Mover', () => bkMovePage(pi, -1), { disabled: pi <= 1 }), btn('Mover →', () => bkMovePage(pi, 1), { disabled: pi >= last - 1 }));
+    row.push(btn('Nova página de fotos', () => bkAddPage(pi, 'collage')), btn('Página de texto', () => bkAddPage(pi, 'text')));
+    row.push(btn('Eliminar página', () => bkDelPage(pi)));
+  } else if (pi === last) {
+    row.push(btn('Nova página antes', () => bkAddPage(last - 1, 'collage')));
+  }
+  const sp = h('div', { class: 'sp' });
+  row.push(sp);
+  const sel = bk.selPhoto && (pg.ids || []).includes(bk.selPhoto) ? bk.selPhoto : (pg.t === 'cover' ? pg.id : null);
+  if (sel && !isFixed) {
+    const ph = (t.photos || []).find(p => p.id === sel);
+    if (ph) {
+      const cap = h('input', { class: 'input', type: 'text', placeholder: 'Legenda desta foto', value: ph.caption || '', 'aria-label': 'Legenda', style: 'max-width:240px;background:#222;color:#EDEAE3;border-color:#4a4a46' });
+      cap.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') cap.blur(); });
+      cap.addEventListener('change', () => { bkPhotoPatch(sel, { caption: cap.value.trim() }); });
+      row.push(cap,
+        btn(ph.fav ? '★ Destaque' : '☆ Destaque', () => { bkPhotoPatch(sel, { fav: !ph.fav }); bk.toast = ph.fav ? 'Destaque retirado.' : 'Marcada como destaque (ganha mais espaço).'; setTimeout(drawBook, 250, 0); }, { title: 'As fotos em destaque ganham mais espaço nas colagens' }),
+        btn('Capa', () => { book.pages[0].id = sel; bkCommit(); }),
+        btn('← Página', () => bkMovePhoto(pi, sel, -1)), btn('Página →', () => bkMovePhoto(pi, sel, 1)),
+        btn('Tirar', () => bkRemovePhoto(pi, sel)));
+      row.push(h('small', {}, 'Arrasta a foto para a enquadrar.'));
+    }
+  }
+  const un = bookUnused(t, book);
+  const rows = [h('div', { class: 'pickrow' }, row)];
+  rows.push(h('small', { class: 'overnote', hidden: true, style: 'color:#ff8a8e' }, 'Há texto a sair da página: usa "Continuar noutra página" ou encurta.'));
+  if (un.length) {
+    rows.push(h('div', { class: 'pickrow' },
+      h('small', {}, `${pl(un.length, 'foto fora do livro', 'fotos fora do livro')}: clica para juntar à página selecionada.`),
+      btn(`Acrescentar todas (${un.length})`, bkAppendNew),
+      h('div', { class: 'tray' }, un.slice(0, 60).map(p => h('button', { type: 'button', 'aria-label': 'Juntar foto à página', style: `background-image:url("${blobUrl(p.th || p.id)}")`, onclick: () => bkAddPhoto(pi, p.id) })))));
+  }
+  const reset = h('button', { class: 'btn sm', type: 'button' }, 'Refazer automaticamente');
+  let armed = false;
+  reset.addEventListener('click', () => {
+    if (!armed) { armed = true; reset.textContent = 'Confirmar: perde as alterações'; return; }
+    const nb = bookAuto(t, { theme: book.theme, fmt: book.fmt }); bk.book = nb; bk.i = 0; bk.sel = null; bkCommit();
+  });
+  rows.push(h('div', { class: 'pickrow' }, reset, h('small', {}, 'Podes escrever diretamente nos títulos e textos das páginas.')));
+  return h('div', { class: 'tools', style: 'flex-direction:column;align-items:stretch' }, rows);
+}
+const bkPhotoSortSafe = t => bkPhotoSort(t);
+
+/* ---------- exportação ---------- */
+async function toDataUrl(id, max, q) {
   const r = await fetch(blobUrl(id));
   if (!r.ok) throw new Error('foto');
   const bmp = await createImageBitmap(await r.blob());
@@ -1217,23 +1482,32 @@ async function toDataUrl(id, max) {
   const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
   bmp.close && bmp.close();
-  return c.toDataURL('image/jpeg', 0.82);
+  return c.toDataURL('image/jpeg', q || 0.82);
 }
+const bkIds = book => [...new Set(book.pages.flatMap(p => [p.id].concat(p.ids || [])).filter(Boolean))];
+async function bkCacheImages(t, book, max, q, label) {
+  const have = new Set((t.photos || []).map(p => p.id)), ids = bkIds(book).filter(i => have.has(i)), cache = new Map();
+  for (let i = 0; i < ids.length; i++) {
+    setStatus(`${label}: foto ${i + 1} de ${ids.length}…`);
+    try { cache.set(ids[i], await toDataUrl(ids[i], max, q)); } catch (e) { cache.set(ids[i], ''); }
+  }
+  return cache;
+}
+const bkFontCss = book => bookTheme(book).faces.map(n => FONT_FACES[n]).filter(Boolean).join('\n');
+const BK_MM = { land: [297, 223], sq: [210, 210], port: [210, 280] };
 let exporting = false;
 async function exportBook(tid) {
   const t = tripById(tid);
   if (!t || !downloads || exporting) return;
   exporting = true;
   try {
-    const pages = bookPages(t), ids = [...new Set(pages.flatMap(p => p.k === 'cover' ? [coverId(t)].filter(Boolean) : (p.photos || []).map(x => x.id)))];
-    const cache = new Map();
-    for (let i = 0; i < ids.length; i++) {
-      setStatus(`A preparar o livro: foto ${i + 1} de ${ids.length}…`);
-      try { cache.set(ids[i], await toDataUrl(ids[i], 1600)); } catch (e) { cache.set(ids[i], ''); }
-    }
-    const ctx = { src: id => cache.get(id) || '', mapSVG: mapSVGString(t) };
-    const css = '@page{size:297mm 210mm;margin:0}*{box-sizing:border-box}body{margin:0;background:#cfd6d3;font-family:"Source Sans 3",system-ui,sans-serif;padding:24px 0}.note{max-width:880px;margin:0 auto 20px;padding:0 16px;font-size:14px;color:#33413d}.pg{width:min(100%,1100px);margin:0 auto 24px}@media print{body{background:#fff;padding:0}.note{display:none}.pg{width:297mm;height:210mm;margin:0;box-shadow:none;break-after:page;page-break-after:always}}';
-    const html = `<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(t.title)}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Source+Sans+3:wght@400;600&family=DM+Mono:wght@400;500&display=swap"><style>${BOOK_CSS}${css}</style></head><body><p class="note">Livro de viagem: ${esc(t.title)}. Para obter um PDF ou imprimir, usa Imprimir no navegador e escolhe "Guardar como PDF" com margens a zero e gráficos de fundo ativos.</p>${pages.map(p => pageHTML(p, t, ctx)).join('\n')}</body></html>`;
+    const book = bk && bk.tid === tid ? bk.book : bookOf(t);
+    const cache = await bkCacheImages(t, book, 1700, 0.82, 'A preparar o livro');
+    const ctx = bkCtx(t, { book, cache, mapAsImg: true });
+    const sp = bookSpreads(book), mm = BK_MM[book.fmt] || BK_MM.land, th = bookTheme(book);
+    const body = sp.map(s => `<section class="spread${s.length === 1 ? ' one' : ''}">${s.map(i => bookPageHTML(book.pages[i], book, i, ctx)).join('')}</section>`).join('\n');
+    const css = `@page{size:${mm[0]}mm ${mm[1]}mm;margin:0}*{box-sizing:border-box}html{background:#161614}body{margin:0;padding:3vh 0;font-family:sans-serif}.spread{display:flex;width:min(96vw,calc(2 * 92vh * ${bookFmt(book).ar}),1500px);margin:0 auto 3vh;box-shadow:0 18px 60px rgb(0 0 0/.5)}.spread.one{justify-content:center;box-shadow:none}.spread.one .pg{box-shadow:0 18px 60px rgb(0 0 0/.5)}.spread .pg{flex:0 0 50%}.spread.one .pg{flex-basis:50%}.note{max-width:760px;margin:0 auto 3vh;padding:0 16px;color:#aaa;font-size:14px;text-align:center}@media (max-width:760px){.spread{display:block;width:92vw}.spread .pg,.spread.one .pg{width:100%;margin-bottom:3vh}}@media print{html,body{background:#fff;padding:0}.note{display:none}.spread{display:block;width:auto;margin:0;box-shadow:none}.spread .pg,.spread.one .pg{width:${mm[0]}mm;height:${mm[1]}mm;margin:0;box-shadow:none;break-after:page;page-break-after:always}}`;
+    const html = `<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(t.title)}</title><style>${bkFontCss(book)}\n${BOOK_CSS}\n${css}</style></head><body><p class="note">${esc(t.title)} · para obter um PDF, usa Imprimir no navegador (margens a zero, gráficos de fundo ativos).</p>${body}</body></html>`;
     setStatus('A preparar o ficheiro…');
     await downloads.save({ filename: slug(t.title) + '-livro.html', data: new Blob([html], { type: 'text/html' }) });
     setStatus('Livro guardado.', 3000);
@@ -1242,47 +1516,28 @@ async function exportBook(tid) {
   } finally { exporting = false; }
 }
 
-/* ---------- PDF do livro ---------- */
-let fontCssCache = null;
-async function embeddedFonts() {
-  if (fontCssCache !== null) return fontCssCache;
-  fontCssCache = '';
-  try {
-    const link = document.querySelector('link[href*="fonts.googleapis"]');
-    if (!link) return fontCssCache;
-    const css = await (await fetch(link.href)).text();
-    const blocks = [...css.matchAll(/\/\*\s*([\w-]+)\s*\*\/\s*(@font-face\s*\{[^}]*\})/g)].filter(m => m[1] === 'latin' || m[1] === 'latin-ext').map(m => m[2]);
-    const out = [];
-    for (let b of blocks) {
-      const u = (b.match(/url\((https:[^)]+)\)/) || [])[1];
-      if (!u) continue;
-      const blob = await (await fetch(u)).blob();
-      const d = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
-      out.push(b.replace(u, d));
-    }
-    fontCssCache = out.join('\n');
-  } catch (e) { fontCssCache = ''; }
-  return fontCssCache;
-}
-const PDF_W = 1587, PDF_H = 1122;
-async function pageToJpeg(html, fonts) {
+const PDF_PX = { land: [2000, 1500], sq: [1800, 1800], port: [1500, 2000] };
+async function pageToJpeg(html, fontCss, W, H) {
   const box = document.createElement('div'); box.innerHTML = html;
-  const xhtml = new XMLSerializer().serializeToString(box);
-  const css = BOOK_CSS + `.pg{width:${PDF_W}px;height:${PDF_H}px;margin:0}`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PDF_W}" height="${PDF_H}"><foreignObject width="${PDF_W}" height="${PDF_H}"><div xmlns="http://www.w3.org/1999/xhtml"><style>${fonts}${css}</style>${xhtml.replace(/^<div[^>]*>/, '').replace(/<\/div>$/, '')}</div></foreignObject></svg>`;
-  const img = new Image();
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-  await img.decode();
-  const c = document.createElement('canvas'); c.width = PDF_W; c.height = PDF_H;
-  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, PDF_W, PDF_H); ctx.drawImage(img, 0, 0);
-  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+  const inner = new XMLSerializer().serializeToString(box.firstElementChild);
+  const css = BOOK_CSS + `.pg{width:${W}px!important;height:${H}px!important;margin:0}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="${W}" height="${H}"><div xmlns="http://www.w3.org/1999/xhtml"><style>${fontCss}\n${css}</style>${inner}</div></foreignObject></svg>`;
+  const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const cx = c.getContext('2d');
+  for (let pass = 0; pass < 2; pass++) {
+    const img = new Image(); img.src = url; await img.decode();
+    cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H); cx.drawImage(img, 0, 0);
+    if (pass === 0) await new Promise(r => setTimeout(r, 30));
+  }
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.88));
   return new Uint8Array(await blob.arrayBuffer());
 }
-function makePdf(jpegs) {
+function makePdf(jpegs, PW, PH, IW, IH) {
   const enc = new TextEncoder(), parts = [], offs = [];
   let len = 0;
   const push = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
-  const PW = 842, PH = 595, n = jpegs.length;
+  const n = jpegs.length;
   push('%PDF-1.4\n');
   offs[1] = len; push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
   offs[2] = len; push(`2 0 obj\n<< /Type /Pages /Count ${n} /Kids [${jpegs.map((_, i) => `${3 + 3 * i} 0 R`).join(' ')}] >>\nendobj\n`);
@@ -1290,7 +1545,7 @@ function makePdf(jpegs) {
     const p = 3 + 3 * i, c = p + 1, im = p + 2, content = `q ${PW} 0 0 ${PH} 0 0 cm /Im0 Do Q`;
     offs[p] = len; push(`${p} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 ${im} 0 R >> >> /Contents ${c} 0 R >>\nendobj\n`);
     offs[c] = len; push(`${c} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
-    offs[im] = len; push(`${im} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${PDF_W} /Height ${PDF_H} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jp.length} >>\nstream\n`); push(jp); push('\nendstream\nendobj\n');
+    offs[im] = len; push(`${im} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${IW} /Height ${IH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jp.length} >>\nstream\n`); push(jp); push('\nendstream\nendobj\n');
   });
   const total = 3 + 3 * n, xref = len;
   push(`xref\n0 ${total}\n0000000000 65535 f \n` + offs.slice(1, total).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
@@ -1303,19 +1558,13 @@ async function exportPdf(tid) {
   if (!t || !downloads || exportingPdf || exporting) return;
   exportingPdf = true;
   try {
-    const pages = bookPages(t), ids = [...new Set(pages.flatMap(p => p.k === 'cover' ? [coverId(t)].filter(Boolean) : (p.photos || []).map(x => x.id)))];
-    const cache = new Map();
-    for (let i = 0; i < ids.length; i++) {
-      setStatus(`PDF: a preparar a foto ${i + 1} de ${ids.length}…`);
-      try { cache.set(ids[i], await toDataUrl(ids[i], 1400)); } catch (e) { cache.set(ids[i], ''); }
-    }
-    setStatus('PDF: a carregar tipos de letra…');
-    const fonts = await embeddedFonts();
-    const mapSvg = mapSVGString(t);
-    const ctx = { src: id => cache.get(id) || '', mapSVG: mapSvg ? `<img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(mapSvg)}" alt="">` : '' };
-    const jpegs = [];
-    for (let i = 0; i < pages.length; i++) { setStatus(`PDF: página ${i + 1} de ${pages.length}…`); jpegs.push(await pageToJpeg(pageHTML(pages[i], t, ctx), fonts)); }
-    await downloads.save({ filename: slug(t.title) + '-livro.pdf', data: makePdf(jpegs) });
+    const book = bk && bk.tid === tid ? bk.book : bookOf(t);
+    const fmt = book.fmt || 'land', [IW, IH] = PDF_PX[fmt] || PDF_PX.land, [PW, PH] = (BOOK_FORMATS[fmt] || BOOK_FORMATS.land).pt;
+    const cache = await bkCacheImages(t, book, 2000, 0.86, 'PDF');
+    const ctx = bkCtx(t, { book, cache, mapAsImg: true });
+    const fontCss = bkFontCss(book), jpegs = [];
+    for (let i = 0; i < book.pages.length; i++) { setStatus(`PDF: página ${i + 1} de ${book.pages.length}…`); jpegs.push(await pageToJpeg(bookPageHTML(book.pages[i], book, i, ctx), fontCss, IW, IH)); }
+    await downloads.save({ filename: slug(t.title) + '-livro.pdf', data: makePdf(jpegs, PW, PH, IW, IH) });
     setStatus('PDF guardado.', 3000);
   } catch (e) {
     setStatus(e && e.code === 'declined' ? null : 'Não foi possível criar o PDF.', 4000);
@@ -1324,16 +1573,17 @@ async function exportPdf(tid) {
 
 /* ---------- teclado ---------- */
 document.addEventListener('keydown', e => {
-  const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+  const typing = document.activeElement && (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable);
   if (e.key === 'Escape') { if (modal) { if (!uploading) closeModal(); } else if (bk) closeBook(); else if (lb) closeLightbox(); }
   else if (!modal && !typing) {
     if (lb) { if (e.key === 'ArrowLeft') lbStep(-1); else if (e.key === 'ArrowRight') lbStep(1); }
-    else if (bk) { if (e.key === 'ArrowLeft') bkStep(-1); else if (e.key === 'ArrowRight') bkStep(1); }
+    else if (bk && !(document.activeElement && document.activeElement.isContentEditable)) { if (e.key === 'ArrowLeft') bkStep(-1); else if (e.key === 'ArrowRight') bkStep(1); }
   }
 });
 
 /* ---------- arranque ---------- */
 async function init() {
+  { const fs = document.createElement('style'); fs.textContent = Object.values(FONT_FACES).join('\n'); document.head.append(fs); }
   try { ui.discreet = !!localStorage.getItem('album-discreto'); } catch (e) { /* sem armazenamento */ }
   document.body.classList.toggle('discreet', ui.discreet);
   applyHash();
@@ -1360,7 +1610,7 @@ async function init() {
     trips = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     const first = !loaded; loaded = true;
     if (first) { const ys = trips.map(t => +(t.start || '').slice(0, 4)).filter(Boolean); if (ys.length) ui.year = Math.max(...ys); }
-    if (!same || first) { render(); if (lb) drawLightbox(); if (bk) drawBook(); }
+    if (!same || first) { render(); if (lb) drawLightbox(); if (bk && !(document.activeElement && document.activeElement.isContentEditable)) drawBook(0); }
   }, () => { clearTimeout(slowTimer); loadError = true; loaded = true; render(); });
 }
 init();

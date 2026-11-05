@@ -1,7 +1,7 @@
 const fs = require('fs');
 const dir = process.argv[2];
-const code = fs.readFileSync(dir + '/world.js', 'utf8') + '\n' + fs.readFileSync(dir + '/lib.js', 'utf8') +
-  '\nreturn {project,unproject,MAP_H,haversineKm,parseExif,findCountry,nearestCountry,groupByDate,tripPoint,tripDays,tripDayCount,LAND,SEAS,COUNTRIES,polyPath,slug,addDays,diffDays,parseYmd};';
+const code = fs.readFileSync(dir + '/world.js', 'utf8') + '\n' + fs.readFileSync(dir + '/lib.js', 'utf8') + '\n' + fs.readFileSync(dir + '/book.js', 'utf8') +
+  '\nreturn {project,unproject,MAP_H,haversineKm,parseExif,findCountry,nearestCountry,groupByDate,tripPoint,tripDays,tripDayCount,LAND,SEAS,COUNTRIES,polyPath,slug,addDays,diffDays,parseYmd,bookAuto,bookSpreads,bkCollages,bkSplitText,bkPaginate};';
 const L = new Function(code)();
 let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FALHOU:', m); } else console.log('ok:', m); };
@@ -124,5 +124,20 @@ eq(L.diffDays('2024-12-30', '2025-01-02'), 3, 'diffDays');
 eq(L.parseYmd('2025-02-30'), null, 'data inválida');
 eq(L.slug('Dolomitas & Veneza!'), 'dolomitas-veneza', 'slug');
 
+{
+  const ars = [1.5, 0.667, 1.5, 1.78];
+  const c = L.bkCollages(ars, [1, 1, 1, 1], { x: 5, y: 5, w: 90, h: 60 }, 1, 4);
+  eq(c.length >= 2, true, 'colagens: várias alternativas');
+  const r = c[0].rects; let crop = 0; for (const q of r) crop = Math.max(crop, Math.abs(Math.log((q.w / q.h) / ars[q.i])));
+  eq(crop < 0.35, true, 'colagens: quase sem corte');
+  eq(r.every(q => q.x >= 4.99 && q.y >= 4.99 && q.x + q.w <= 95.01 && q.y + q.h <= 65.01), true, 'colagens: dentro da caixa');
+  const ph = Array.from({ length: 13 }, (_, i) => ({ id: 'p' + i, w: 1600, h: i % 3 ? 1067 : 1600, date: '2026-01-2' + (i % 3), time: '10:00:00' }));
+  const b = L.bookAuto({ title: 'T', start: '2026-01-20', end: '2026-01-22', photos: ph, days: { '2026-01-20': 'Olá' } });
+  eq(b.pages[0].t, 'cover', 'livro: capa'); eq(b.pages[b.pages.length - 1].t, 'back', 'livro: contracapa');
+  eq((b.pages.length - 2) % 2, 0, 'livro: número par de páginas interiores');
+  const used = new Set(); b.pages.forEach(p => (p.ids || []).forEach(i => used.add(i))); eq(used.size, 13, 'livro: todas as fotos usadas');
+  eq(L.bookSpreads(b).flat().length, b.pages.length, 'livro: duplas cobrem todas as páginas');
+  eq(L.bkSplitText('a '.repeat(900), 760, 1250).length >= 2, true, 'texto dividido');
+}
 console.log(fails ? `\n${fails} testes falharam` : '\ntodos os testes passaram');
 process.exit(fails ? 1 : 0);

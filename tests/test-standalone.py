@@ -19,8 +19,10 @@ with sync_playwright() as p:
     pg.click('#tab-viagens'); pg.wait_for_timeout(300)
     print('after reload cards',pg.locator('.card').count(), pg.evaluate("[...document.querySelectorAll('.card img')].map(i=>i.naturalWidth)"))
     pg.click('.card >> nth=0'); pg.wait_for_timeout(300)
-    with pg.expect_download() as d: pg.click('text=Exportar livro')
-    print('download',d.value.suggested_filename)
+    pg.click('text=Abrir o livro'); pg.wait_for_timeout(600)
+    print('book pages', pg.evaluate('bk.book.pages.length'), 'fonts', pg.evaluate("[...document.fonts].filter(f=>f.status=='loaded').length"))
+    pg.click('.bk >> text=Editar'); pg.click('.bk >> text=Capa >> nth=0') if False else None
+    pg.click('.bk >> text=Fechar'); pg.wait_for_timeout(200)
     # import flow
     pg.click('text=Todas as viagens'); 
     with pg.expect_file_chooser() as fc: pg.click('text=Importar fotos')
