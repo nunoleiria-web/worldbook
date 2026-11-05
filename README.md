@@ -27,3 +27,6 @@ node src/build.js dist/album-de-viagens.html       # versão para artefacto Clau
 
 ## Notas
 - O mapa é simplificado e desenhado à mão; o país sugerido pelo GPS é aproximado.
+
+## Testes
+`node src/test-lib.js src` corre os testes das funções puras. Os scripts em `tests/` (Playwright) foram escritos para o ambiente de desenvolvimento: têm caminhos fixos para ficheiros temporários e, no caso dos `standalone`, esperam um servidor local na porta 8123 com `docs/index.html`. É preciso ajustá-los para correr noutra máquina.
